@@ -1,0 +1,15 @@
+name: Test mir_module Module
+metadata:
+  author: Doga Ozgulbas
+  info: Tests the functionality of the mir  Module
+  version: 0.1
+
+modules:
+  - name: mir_module
+
+flowdef:
+  - name: Transfer
+    module: mir_module
+    action: action
+    args:
+      action_id: 'action1'

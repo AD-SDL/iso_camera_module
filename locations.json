@@ -1,0 +1,46 @@
+{
+    "RPL": {
+        "camera_marker": {
+            "pos_x": 8.209,
+            "guid": "4ccacd0d-7f46-11ee-8521-0001297b4d50",
+            "orientation": 180.0,
+            "pos_y": 16.306,
+            "type_id": 9
+        },
+        "charger1": {
+            "pos_x": 10.119,
+            "guid": "f0908191-7f46-11ee-8521-0001297b4d50",
+            "orientation": 88.936,
+            "pos_y": 21.557,
+            "type_id": 20
+        },
+        "N9": {
+            "pos_x": 11.0,
+            "guid": "7224a20f-d65c-11ee-a833-0001297b4d50",
+            "orientation": 0.0,
+            "pos_y": 16.372,
+            "type_id": 11
+        },
+        "test_pos": {
+            "pos_x": 10.119,
+            "guid": "88c7d8ff-54d0-11ef-90e0-0001297b4d50",
+            "orientation": 88.936,
+            "pos_y": 19.0,
+            "type_id": 0
+        },
+        "test_move": {
+            "pos_x": 7.0,
+            "guid": "d99494c0-54d5-11ef-be3f-0001297b4d50",
+            "orientation": 180.0,
+            "pos_y": 20.2,
+            "type_id": 0
+        },
+        "another_move": {
+            "pos_x": 8.1,
+            "guid": "b34d6e54-5670-11ef-a572-0001297b4d50",
+            "orientation": 3.18,
+            "pos_y": 20.4,
+            "type_id": 0
+        }
+    }
+}
