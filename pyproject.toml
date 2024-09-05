@@ -1,14 +1,8 @@
-[project]
-name = "mir_module"
-version = "0.2.0"
-description = "Software for automatting a mir robot"
+[rpl_tag_engine_module]
+name = "rpl_tag_engine_module"
+version = "1.0.0"
+description = "Software for controlling RPL tag camera engine."
 authors = [
-    {name = "Ryan D. Lewis", email="ryan.lewis@anl.gov"},
-    {name = "Rafael Vescovi", email="ravescovi@anl.gov"},
-    {name = "Doga Ozgulbas", email="dozgulbas@anl.gov"},
-    {name = "Abe Stroka", email="astroka@anl.gov"},
-    {name = "Kyle Hippe", email = "khippe@anl.gov"},
-    {name = "Tobias Ginsburg", email = "tginsburg@anl.gov"},
     {name = "Aileen Cleary", email = "acleary@anl.gov"},
 ]
 dependencies = [
@@ -22,7 +16,7 @@ readme = "README.md"
 license = {text = "MIT"}
 
 [project.urls]
-homepage = "https://github.com/AD-SDL/mir_module"
+homepage = "https://github.com/AD-SDL/rpl_tag_engine_module"
 
 ######################
 # Build Info + Tools #

@@ -14,11 +14,11 @@ class TestImports(TestModule_Base):
 
     def test_driver_import(self):
         """Test the driver and rest node imports"""
-        import mir_driver
-        import mir_rest_node
+        import rpl_tag_engine_driver
+        import rpl_tag_engine_rest_node
 
-        assert mir_driver
-        assert mir_rest_node
+        assert rpl_tag_engine_driver
+        assert rpl_tag_engine_rest_node
 
 
 if __name__ == "__main__":

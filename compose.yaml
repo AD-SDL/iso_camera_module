@@ -1,7 +1,7 @@
-name: mir_module
+name: rpl_tag_engine_module
 services:
   mir_module:
-    container_name: mir_module
+    container_name: rpl_tag_engine_module_module
     image: ${IMAGE}
     build:
       context: .
@@ -9,10 +9,10 @@ services:
       tags:
         - ${IMAGE}:latest
         - ${IMAGE}:dev
-    command: python -m mir_rest_node --port 3043  --mir_host ${MIR_HOST} --map_name ${MAP_NAME}
+    command: python -m rpl_tag_engine_rest_node --port 3097  --host ${HOST} --database ${DATABASE} --camera ${CAMERA} --verbose ${VERBOSE}
     env_file: .env
     volumes:
-      - ./src:/home/app/mir_module/src
-      - ./tests:/home/app/mir_module/tests
+      - ./src:/home/app/rpl_tag_engine_module/src
+      - ./tests:/home/app/rpl_tag_engine_module/tests
     ports:
-      - 3043:3043
+      - 3097:3097
