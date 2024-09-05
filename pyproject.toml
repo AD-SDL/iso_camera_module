@@ -1,4 +1,4 @@
-[rpl_tag_engine_module]
+[project]
 name = "rpl_tag_engine_module"
 version = "1.0.0"
 description = "Software for controlling RPL tag camera engine."
