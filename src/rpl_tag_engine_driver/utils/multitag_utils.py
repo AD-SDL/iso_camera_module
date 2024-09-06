@@ -1,9 +1,13 @@
+"""
+Module for analyzing and manipulating detections.
+"""
+
+import apriltag_utils
+import camera_utils
 import cv2
 import numpy as np
-
-import camera_utils
 import pose_utils
-import apriltag_utils
+
 
 def coplanar_test_one(rvec0, tvec0, rvec1, tvec1):
     """
@@ -19,7 +23,8 @@ def coplanar_test_one(rvec0, tvec0, rvec1, tvec1):
     sepn = np.linalg.norm(tvec0 - tvec1)
     dist1 = pose_utils.point_to_plane_rvec(tvec0, rvec0, tvec1) / sepn
     dist0 = pose_utils.point_to_plane_rvec(tvec1, rvec1, tvec0) / sepn
-    return f'{sepn:7.2f} {dist1:7.2f} {dist0:7.2f} ({np.linalg.norm([dist1,dist0]):7.2f})'
+    return f"{sepn:7.2f} {dist1:7.2f} {dist0:7.2f} ({np.linalg.norm([dist1,dist0]):7.2f})"
+
 
 def coplanar_detection_test(detections, d_dex0, d_dex1):
     """
@@ -33,12 +38,13 @@ def coplanar_detection_test(detections, d_dex0, d_dex1):
         Results of the coplanarity test between the two detections.
     """
     rvec0, tvec0 = pose_utils.rvec_tvec_from_pose(detections[d_dex0 * 4 + 1])
-    print('     ', apriltag_utils.build_rstr(rvec0), apriltag_utils.build_tstr(tvec0))
+    print("     ", apriltag_utils.build_rstr(rvec0), apriltag_utils.build_tstr(tvec0))
     rvec1, tvec1 = pose_utils.rvec_tvec_from_pose(detections[d_dex1 * 4 + 1])
-    print('     ',apriltag_utils.build_rstr(rvec1), apriltag_utils.build_tstr(tvec1))
+    print("     ", apriltag_utils.build_rstr(rvec1), apriltag_utils.build_tstr(tvec1))
     costr = coplanar_test_one(rvec0, tvec0, rvec1, tvec1)
-    print(f'{d_dex0:2} {d_dex1:2}:', costr)
+    print(f"{d_dex0:2} {d_dex1:2}:", costr)
     return
+
 
 def triangle_vs_tag_normal_test(detections, d_dex0, d_dex1, d_dex2):
     """
@@ -56,8 +62,9 @@ def triangle_vs_tag_normal_test(detections, d_dex0, d_dex1, d_dex2):
     tag_normals = [pose_utils.xyz_axes_from_pose(detections[d * 4 + 1][:3, :3])[2] for d in [d_dex0, d_dex1, d_dex2]]
     print(apriltag_utils.build_rstr(triangle_normal))
     for tn in tag_normals:
-        print(apriltag_utils.build_rstr(tn), f'{np.dot(tn, triangle_normal):7.2f}')
+        print(apriltag_utils.build_rstr(tn), f"{np.dot(tn, triangle_normal):7.2f}")
     return
+
 
 def triangle_tag_normal_report(rvecs, tvecs, verbose=False):
     """
@@ -77,11 +84,16 @@ def triangle_tag_normal_report(rvecs, tvecs, verbose=False):
     for i, tn in enumerate(tag_normals):
         if verbose:
             rv = rvecs[i].flatten()
-            print(apriltag_utils.build_rstr(rv), apriltag_utils.build_rstr(tn),
-                  f'{np.dot(tn, triangle_normal):7.2f}', f'{np.linalg.norm(rv) * 180 / np.pi:8.2f}')
+            print(
+                apriltag_utils.build_rstr(rv),
+                apriltag_utils.build_rstr(tn),
+                f"{np.dot(tn, triangle_normal):7.2f}",
+                f"{np.linalg.norm(rv) * 180 / np.pi:8.2f}",
+            )
         else:
-            print(apriltag_utils.build_rstr(tn), f'{np.dot(tn, triangle_normal):7.2f}')
+            print(apriltag_utils.build_rstr(tn), f"{np.dot(tn, triangle_normal):7.2f}")
     return
+
 
 def polygon_orientation(pts, image_sense=False):
     """
@@ -103,6 +115,7 @@ def polygon_orientation(pts, image_sense=False):
         clockwise += sign * (x2[0] - x1[0]) * (x2[1] + x1[1])
     return clockwise >= 0
 
+
 def detections_subset(detections, d_dex_list):
     """
     Gather a subset of detections based on provided indices.
@@ -120,6 +133,7 @@ def detections_subset(detections, d_dex_list):
             det_subset.append(detections[d + doff])
     return det_subset
 
+
 def corners_subset(detections, d_dex_list):
     """
     Gather the corner points from a subset of detections.
@@ -133,8 +147,9 @@ def corners_subset(detections, d_dex_list):
     """
     tag_corners = []
     for d in d_dex_list:
-        tag_corners.append(apriltag_utils.value_by_field(detections[4 * d], 'Corners'))
+        tag_corners.append(apriltag_utils.value_by_field(detections[4 * d], "Corners"))
     return tag_corners
+
 
 def field_subset(detections, d_dex_list, field):
     """
@@ -153,6 +168,7 @@ def field_subset(detections, d_dex_list, field):
         tag_fields.append(apriltag_utils.value_by_field(detections[4 * d], field))
     return tag_fields
 
+
 def pose_rotation_ambiguity_test(recon_errors, contrast_threshold=0.2):
     """
     Test for rotation ambiguity in pose estimation.
@@ -169,7 +185,10 @@ def pose_rotation_ambiguity_test(recon_errors, contrast_threshold=0.2):
     keep = contrast > contrast_threshold
     return keep
 
-def consistent_coplanar_poses(tag_corners, tag_size, camera_params, distCoeffs=None, verbose=False, kit_and_kaboodle=False):
+
+def consistent_coplanar_poses(
+    tag_corners, tag_size, camera_params, distCoeffs=None, verbose=False, kit_and_kaboodle=False
+):
     """
     Find consistent and coplanar poses from tag detections.
 
@@ -201,56 +220,41 @@ def consistent_coplanar_poses(tag_corners, tag_size, camera_params, distCoeffs=N
     tvecs = [r[2][0].flatten() for r in results]
     triangle_normal = pose_utils.plane_norm(tvecs[0], tvecs[1], tvecs[2])
     centers = np.array([np.mean(poly, axis=0) for poly in tag_corners])
-    
+
     if not polygon_orientation(centers, image_sense=True):
         triangle_normal = -triangle_normal
 
     if verbose:
         for tv in tvecs:
             print(tv)
-        print('Normal to oriented plane of tag group:', triangle_normal)
+        print("Normal to oriented plane of tag group:", triangle_normal)
 
     # Sanity check: ensure tags are correctly oriented
     for i, corns in enumerate(tag_corners):
         if not polygon_orientation(corns, image_sense=True):
-            print(f'Tag {i} in set is not oriented correctly. This could indicate a mirrored image or a tragic error.')
-            print('WARNING: Ignoring this tag and continuing with the results.')
+            print(f"Tag {i} in set is not oriented correctly. This could indicate a mirrored image or a tragic error.")
+            print("WARNING: Ignoring this tag and continuing with the results.")
 
     # Determine the best pose solution
-    rvecs = [
-        [r[1][0].flatten() for r in results],
-        [r[1][1].flatten() for r in results]
-    ]
+    rvecs = [[r[1][0].flatten() for r in results], [r[1][1].flatten() for r in results]]
     tag_normals = [
         [pose_utils.xyz_axes_from_rvec(rv)[2] for rv in rvecs[0]],
-        [pose_utils.xyz_axes_from_rvec(rv)[2] for rv in rvecs[1]]
+        [pose_utils.xyz_axes_from_rvec(rv)[2] for rv in rvecs[1]],
     ]
-    dots = [
-        [np.dot(t, triangle_normal) for t in tag_normals[0]],
-        [np.dot(t, triangle_normal) for t in tag_normals[1]]
-    ]
-    tvecs = [
-        [r[2][0].flatten() for r in results],
-        [r[2][1].flatten() for r in results]
-    ]
+    dots = [[np.dot(t, triangle_normal) for t in tag_normals[0]], [np.dot(t, triangle_normal) for t in tag_normals[1]]]
+    tvecs = [[r[2][0].flatten() for r in results], [r[2][1].flatten() for r in results]]
 
     best = [0 for _ in results]
     for i in range(len(results)):
         if dots[1][i] > dots[0][i]:
             best[i] = 1
 
-    find_best = {
-        'rvecs': rvecs,
-        'tvecs': tvecs,
-        'tag_normals': tag_normals,
-        'dots': dots,
-        'best_index': best
-    }
+    find_best = {"rvecs": rvecs, "tvecs": tvecs, "tag_normals": tag_normals, "dots": dots, "best_index": best}
 
     if verbose:
-        print('-' * 60, 'Dot products using tag normal from IPPE rvecs')
+        print("-" * 60, "Dot products using tag normal from IPPE rvecs")
         for t0, t1 in zip(tag_normals[0], tag_normals[1]):
-            print(f'{np.dot(triangle_normal, t0):6.2f} {np.dot(triangle_normal, t1):6.2f}')
+            print(f"{np.dot(triangle_normal, t0):6.2f} {np.dot(triangle_normal, t1):6.2f}")
         print()
         apriltag_utils.triangle_tag_normal_report(rvecs, tvecs)
         print()
@@ -266,6 +270,7 @@ def consistent_coplanar_poses(tag_corners, tag_size, camera_params, distCoeffs=N
 
     return best_rvecs, best_tvecs
 
+
 def axes_and_pose_box_coords(rvec, tvec, camera_params, tag_size, z_sign=1):
     """
     Compute the 2D coordinates of axes and pose box edges projected onto the image.
@@ -278,7 +283,7 @@ def axes_and_pose_box_coords(rvec, tvec, camera_params, tag_size, z_sign=1):
         z_sign (int, optional): Sign for the z-axis length. Defaults to 1.
 
     Returns:
-        tuple: 
+        tuple:
             - axes_coords (list of numpy.ndarray): Coordinates of the tag's axes in image space.
             - box_edge_coords (list of numpy.ndarray): Coordinates of the tag's pose box edges in image space.
     """
@@ -288,22 +293,40 @@ def axes_and_pose_box_coords(rvec, tvec, camera_params, tag_size, z_sign=1):
     dcoeffs = np.zeros(5)
 
     # Pose box coordinates
-    opoints = np.array([
-        -1, -1, 0,
-         1, -1, 0,
-         1,  1, 0,
-        -1,  1, 0,
-        -1, -1, -2 * z_sign,
-         1, -1, -2 * z_sign,
-         1,  1, -2 * z_sign,
-        -1,  1, -2 * z_sign,
-    ]).reshape(-1, 1, 3) * 0.5 * tag_size
+    opoints = (
+        np.array(
+            [
+                -1,
+                -1,
+                0,
+                1,
+                -1,
+                0,
+                1,
+                1,
+                0,
+                -1,
+                1,
+                0,
+                -1,
+                -1,
+                -2 * z_sign,
+                1,
+                -1,
+                -2 * z_sign,
+                1,
+                1,
+                -2 * z_sign,
+                -1,
+                1,
+                -2 * z_sign,
+            ]
+        ).reshape(-1, 1, 3)
+        * 0.5
+        * tag_size
+    )
 
-    edges = np.array([
-        0, 1,        1, 2,        2, 3,        3, 0,
-        0, 4,        1, 5,        2, 6,        3, 7,
-        4, 5,        5, 6,        6, 7,        7, 4
-    ]).reshape(-1, 2)
+    edges = np.array([0, 1, 1, 2, 2, 3, 3, 0, 0, 4, 1, 5, 2, 6, 3, 7, 4, 5, 5, 6, 6, 7, 7, 4]).reshape(-1, 2)
 
     ipoints, _ = cv2.projectPoints(opoints, rvec, tvec, cameraMatrix, dcoeffs)
 
@@ -313,18 +336,9 @@ def axes_and_pose_box_coords(rvec, tvec, camera_params, tag_size, z_sign=1):
         box_edge_coords.append(coords)
 
     # Axes coordinates
-    opoints = np.float32([
-        [0, 0, 0],
-        [1, 0, 0],
-        [0, -1, 0],
-        [0, 0, -1]
-    ]) * tag_size
+    opoints = np.float32([[0, 0, 0], [1, 0, 0], [0, -1, 0], [0, 0, -1]]) * tag_size
 
-    edges = np.array([
-        0, 1,
-        0, 2,
-        0, 3
-    ]).reshape(-1, 2)
+    edges = np.array([0, 1, 0, 2, 0, 3]).reshape(-1, 2)
 
     ipoints, _ = cv2.projectPoints(opoints, rvec, tvec, cameraMatrix, dcoeffs)
 
@@ -334,6 +348,7 @@ def axes_and_pose_box_coords(rvec, tvec, camera_params, tag_size, z_sign=1):
         axes_coords.append(coords)
 
     return axes_coords, box_edge_coords
+
 
 def tag_opoints_offset(tag_size, offset=[0, 0]):
     """
@@ -346,15 +361,15 @@ def tag_opoints_offset(tag_size, offset=[0, 0]):
     Returns:
         numpy.ndarray: 3D coordinates of the tag corners with the given offset.
     """
-    ox = offset[0] * 2      # Compensate for * 0.5
+    ox = offset[0] * 2  # Compensate for * 0.5
     oy = offset[1] * 2
-    opoints = np.array([
-        -1 + ox, -1 + oy, 0,
-         1 + ox, -1 + oy, 0,
-         1 + ox,  1 + oy, 0,
-        -1 + ox,  1 + oy, 0
-    ]).reshape(-1, 1, 3) * 0.5 * tag_size
+    opoints = (
+        np.array([-1 + ox, -1 + oy, 0, 1 + ox, -1 + oy, 0, 1 + ox, 1 + oy, 0, -1 + ox, 1 + oy, 0]).reshape(-1, 1, 3)
+        * 0.5
+        * tag_size
+    )
     return opoints
+
 
 def multitag_opoints(tag_size, offsets):
     """
@@ -371,6 +386,7 @@ def multitag_opoints(tag_size, offsets):
     for o in offsets[1:]:
         opoints = np.vstack([opoints, tag_opoints_offset(tag_size, o)])
     return opoints
+
 
 def many_tag_ippe(tag_corners, tag_size, cameraMatrix, distCoeffs=None):
     """
@@ -392,6 +408,7 @@ def many_tag_ippe(tag_corners, tag_size, cameraMatrix, distCoeffs=None):
         results.append([ret, rvecs, tvecs, errs])
     return results
 
+
 def value_from_all_tags(detections, field):
     """
     Extract values from all detected tags based on the specified field.
@@ -411,12 +428,12 @@ def value_from_all_tags(detections, field):
         return []
 
     if len(detections[1]) != 4:
-        if field == 'Pose':
+        if field == "Pose":
             return []
         stride = 1
-
+    print(stride)
     results = []
-    if field == 'Pose':
+    if field == "Pose":
         for p in detections[1::4]:
             results.append(p)
     else:
@@ -424,6 +441,7 @@ def value_from_all_tags(detections, field):
             results.append(apriltag_utils.value_by_field(d, field))
 
     return results
+
 
 def format_list(nlist):
     """
@@ -435,7 +453,8 @@ def format_list(nlist):
     Returns:
         str: Formatted string representation of the list.
     """
-    return '[' + ' '.join([f'{v:0.0f}' for v in nlist]) + ']'
+    return "[" + " ".join([f"{v:0.0f}" for v in nlist]) + "]"
+
 
 def find_tag_neighbors(these_corners, dthresh=0.1, sep_factor=2.0, verbose=False):
     """
@@ -454,8 +473,8 @@ def find_tag_neighbors(these_corners, dthresh=0.1, sep_factor=2.0, verbose=False
     these_diams = [max(np.linalg.norm(c[0] - c[2]), np.linalg.norm(c[1] - c[3])) for c in these_corners]
 
     tag_neighbors = []
-    for i1, (d1, cen1, corns1) in enumerate(zip(these_diams, these_centers, these_corners)):
-        for i2, (d2, cen2, corns2) in enumerate(zip(these_diams, these_centers, these_corners)):
+    for i1, (d1, cen1, _) in enumerate(zip(these_diams, these_centers, these_corners)):
+        for i2, (d2, cen2, _) in enumerate(zip(these_diams, these_centers, these_corners)):
             if i2 <= i1:
                 continue
             if np.abs(d1 - d2) / (d1 + d2) > dthresh:
@@ -463,8 +482,9 @@ def find_tag_neighbors(these_corners, dthresh=0.1, sep_factor=2.0, verbose=False
             if np.linalg.norm(cen1 - cen2) < sep_factor * np.mean([d1, d2]):
                 tag_neighbors.append([i1, i2])
                 if verbose:
-                    print(f'{i1:2} {i2:2} {d1:3.0f} {d2:3.0f}')
+                    print(f"{i1:2} {i2:2} {d1:3.0f} {d2:3.0f}")
     return tag_neighbors
+
 
 def breadth_first_connected_components(graph, nodes):
     """
@@ -478,7 +498,7 @@ def breadth_first_connected_components(graph, nodes):
         list of sets: List of connected components, each represented as a set of nodes.
     """
     seen = set()
-    result = []   # List of sets to hold the final result
+    result = []  # List of sets to hold the final result
     for node in nodes:
         if node not in seen:
             components = set()
@@ -492,6 +512,7 @@ def breadth_first_connected_components(graph, nodes):
                         leaves.append(connected_node)
             result.append(components)
     return result
+
 
 def aggregate_tag_clusters(edges):
     """
@@ -514,9 +535,10 @@ def aggregate_tag_clusters(edges):
         graph[e[0]].append(e[1])
         nodes.add(e[0])
         nodes.add(e[1])
-    
+
     multitag_clusters = breadth_first_connected_components(graph, list(nodes))
     return multitag_clusters
+
 
 def tag_grid_from_basis(p_minx, basis, tag_nums, pts):
     """
@@ -535,13 +557,13 @@ def tag_grid_from_basis(p_minx, basis, tag_nums, pts):
     maxxy = np.max(pts, axis=0)
     tag_grid = []
     tag_nums_to_assign = set(tag_nums)
-    
+
     for i in range(3):
         for j in range(2):
             gen_point = p_minx + i * basis[0] + j * basis[1]
             best_so_far = np.linalg.norm(maxxy - minxy) + 1
             best_assignment = -1
-            
+
             for k in range(len(pts)):
                 tn = tag_nums[k]
                 if tn not in tag_nums_to_assign:
@@ -550,10 +572,11 @@ def tag_grid_from_basis(p_minx, basis, tag_nums, pts):
                 if this_dist < best_so_far:
                     best_so_far = this_dist
                     best_assignment = tn
-            
+
             tag_grid.append([i, j, best_assignment])
-    
+
     return tag_grid
+
 
 def find_2x3_grid(tag_nums, pts, threshold=0.1, verbose=False):
     """
@@ -571,7 +594,7 @@ def find_2x3_grid(tag_nums, pts, threshold=0.1, verbose=False):
         list of numpy.ndarray or None: The basis vectors if successful, otherwise None.
     """
     if len(pts) != 6:
-        print('FAIL: need exactly six points')
+        print("FAIL: need exactly six points")
         return False, None, None
 
     minxy = np.min(pts, axis=0)
@@ -581,7 +604,7 @@ def find_2x3_grid(tag_nums, pts, threshold=0.1, verbose=False):
     p_minx = pts[minx_dex]
     maxx_dex = np.where(pts[:, 0] == maxxy[0])[0][0]
     p_maxx = pts[maxx_dex]
-    
+
     info = []
     for i, p in enumerate(pts):
         if i == minx_dex:
@@ -591,13 +614,13 @@ def find_2x3_grid(tag_nums, pts, threshold=0.1, verbose=False):
         theta = np.arctan2(delta[0], delta[1])
         info.append([i, delta, length, theta])
         if verbose:
-            print(f'{i:3} {delta[0]:6.1f} {delta[1]:6.1f} {length:6.1f} {theta * 180. / np.pi:6.1f}')
-    
+            print(f"{i:3} {delta[0]:6.1f} {delta[1]:6.1f} {length:6.1f} {theta * 180. / np.pi:6.1f}")
+
     three_closest = np.argsort([r[2] for r in info])[:3]
 
     predict_this_distance = max([r[2] for r in info])
     possible_bases = []
-    
+
     for i in three_closest:
         for j in three_closest:
             if i == j:
@@ -605,18 +628,21 @@ def find_2x3_grid(tag_nums, pts, threshold=0.1, verbose=False):
             candidate_furthest_delta = 2 * info[i][1] + info[j][1]
             candidate_furthest_distance = np.linalg.norm(candidate_furthest_delta)
             furthest_test = np.linalg.norm(p_minx + candidate_furthest_delta - p_maxx) / candidate_furthest_distance
-            contrast = abs(candidate_furthest_distance - predict_this_distance) / (candidate_furthest_distance + predict_this_distance)
-            
+            contrast = abs(candidate_furthest_distance - predict_this_distance) / (
+                candidate_furthest_distance + predict_this_distance
+            )
+
             if furthest_test < threshold:
                 basis = [info[i][1], info[j][1]]
                 tag_grid = tag_grid_from_basis(p_minx, basis, tag_nums, pts)
                 return True, tag_grid, basis
-            
+
             possible_bases.append([i, j, candidate_furthest_distance, contrast])
             if verbose:
-                print(f'{i:3} {j:3} {candidate_furthest_distance:6.1f} {contrast:5.2f} {furthest_test:5.3f}')
-    
+                print(f"{i:3} {j:3} {candidate_furthest_distance:6.1f} {contrast:5.2f} {furthest_test:5.3f}")
+
     return False, None, None
+
 
 def fmt_this_my_way(tag_grid, basis):
     """
@@ -629,14 +655,13 @@ def fmt_this_my_way(tag_grid, basis):
     Returns:
         str: Formatted string of the tag grid and basis vectors.
     """
+
     def p1(vec):
-        return '[' + ' '.join([f'{v:2}' for v in vec]) + ']'
-    
+        return "[" + " ".join([f"{v:2}" for v in vec]) + "]"
+
     def p2(vec):
-        return '[' + ' '.join([f'{v:5.1f}' for v in vec]) + ']'
-    
-    s1 = '[' + ', '.join([p1(vec) for vec in tag_grid]) + ']'
-    s2 = '[' + ', '.join([p2(vec) for vec in basis]) + ']'
-    return s1 + '   ' + s2
+        return "[" + " ".join([f"{v:5.1f}" for v in vec]) + "]"
 
-
+    s1 = "[" + ", ".join([p1(vec) for vec in tag_grid]) + "]"
+    s2 = "[" + ", ".join([p2(vec) for vec in basis]) + "]"
+    return s1 + "   " + s2

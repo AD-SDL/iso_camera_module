@@ -1,20 +1,25 @@
-import numpy as np
-import cv2
+"""
+This module provides utilities for measuring and processing AprilTag poses,
+handling multitag detections, and interfacing with RPLTag databases.
+"""
 
-import camera_utils
 import apriltag_utils
+import camera_utils
+import cv2
 import multitag_utils
+import numpy as np
 import object_utils
 
+
 def add_measurements(
-    measure_these,
-    mt_poses,
+    measure_these: list[int],
+    mt_poses: list[list],
     RPLTag_DB: object_utils.RPLTagDatabase,
-    img_fname,
-    camera_fname,
-    verbose=False,
-    camera_only=True
-):
+    img_fname: str,
+    camera_fname: str,
+    verbose: bool = False,
+    camera_only: bool = True,
+) -> None:
     """
     Compute and add relative poses between a set of reference tags and detected tags.
 
@@ -31,23 +36,23 @@ def add_measurements(
         None
     """
     if verbose:
-        print(' '*4,end=' ')
+        print(" " * 4, end=" ")
         for m_ref in measure_these:
-            print(f'{m_ref:7}',end=' ')
+            print(f"{m_ref:7}", end=" ")
         print()
 
     meas_added = 0
     out_of = 0
 
     for m_ref in measure_these:
-        print(f'{m_ref:3}:', end=' ')
+        print(f"{m_ref:3}:", end=" ")
         r_ref = search_multitag_records(m_ref, mt_poses)
         if not r_ref:
             print()
             continue
 
         c_ref = -1
-        record = [ img_fname, camera_fname, r_ref[3][0], r_ref[3][1], c_ref, r_ref]
+        record = [img_fname, camera_fname, r_ref[3][0], r_ref[3][1], c_ref, r_ref]
         result = RPLTag_DB.new_measurement(c_ref, m_ref, record)
 
         if camera_only:
@@ -57,7 +62,7 @@ def add_measurements(
             if m_other > m_ref:
                 r_other = search_multitag_records(m_other, mt_poses)
                 if not r_other:
-                    print(' '*7,end=' ')
+                    print(" " * 7, end=" ")
                     continue
 
                 relative_rvec, relative_tvec = relative_pose(r_ref[3], r_other[3])
@@ -68,16 +73,19 @@ def add_measurements(
                 out_of += 1
 
                 if verbose:
-                    print(f'{np.linalg.norm(relative_tvec):7.2f}', end=' ')
+                    print(f"{np.linalg.norm(relative_tvec):7.2f}", end=" ")
             else:
                 if verbose:
-                    print(' '*7,end=' ')
+                    print(" " * 7, end=" ")
         if verbose:
             print()
     if verbose:
-        print(f'MEASUREMENTS added: {meas_added} out of {out_of} computed.')
+        print(f"MEASUREMENTS added: {meas_added} out of {out_of} computed.")
 
-def relative_pose(ref_pose_vecs, other_pose_vecs):
+
+def relative_pose(
+    ref_pose_vecs: tuple[np.ndarray, np.ndarray], other_pose_vecs: tuple[np.ndarray, np.ndarray]
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Compute the relative pose between two sets of pose vectors.
 
@@ -88,13 +96,14 @@ def relative_pose(ref_pose_vecs, other_pose_vecs):
     Returns:
         tuple: Relative rotation vector and translation vector.
     """
-    rot_ref, _  = cv2.Rodrigues(ref_pose_vecs[0])
-    rot_oth, _  = cv2.Rodrigues(other_pose_vecs[0])
+    rot_ref, _ = cv2.Rodrigues(ref_pose_vecs[0])
+    rot_oth, _ = cv2.Rodrigues(other_pose_vecs[0])
     new_rvec, _ = cv2.Rodrigues(np.matmul(rot_ref.T, rot_oth))
-    new_tvec   = other_pose_vecs[1] - ref_pose_vecs[1]
+    new_tvec = other_pose_vecs[1] - ref_pose_vecs[1]
     return new_rvec, new_tvec
 
-def search_multitag_records(this_mt, mt_pose_records):
+
+def search_multitag_records(this_mt: int, mt_pose_records: list[list]) -> list:
     """
     Search for multitag records with a specific ID.
 
@@ -110,7 +119,10 @@ def search_multitag_records(this_mt, mt_pose_records):
             return r
     return []
 
-def order_legal_multitag_tags(mt_ID: int, detection_ID_pairs: list, tagdb: object_utils.RPLTagDatabase) -> list:
+
+def order_legal_multitag_tags(
+    mt_ID: int, detection_ID_pairs: list[list], tagdb: object_utils.RPLTagDatabase
+) -> list[list]:
     """
     Orders detected tag ID pairs to match the tag template in the database.
 
@@ -122,21 +134,24 @@ def order_legal_multitag_tags(mt_ID: int, detection_ID_pairs: list, tagdb: objec
     Returns:
         list: Ordered list of detection ID pairs matching the multitag template.
     """
-    this_multitag = tagdb.multitags.entries[mt_ID]  
+    this_multitag = tagdb.multitags.entries[mt_ID]
     ordered_tag_pairs = []
 
     for tag_ID in this_multitag.tags:
         for pair in detection_ID_pairs:
-            if pair[1]==tag_ID:
+            if pair[1] == tag_ID:
                 ordered_tag_pairs.append(pair)
                 break
 
-    if len(ordered_tag_pairs)!=len(detection_ID_pairs):
-        print('FAIL - did not match all tag_IDs: detected', detection_ID_pairs, 'required', this_multitag.tags)
-        
+    if len(ordered_tag_pairs) != len(detection_ID_pairs):
+        print("FAIL - did not match all tag_IDs: detected", detection_ID_pairs, "required", this_multitag.tags)
+
     return ordered_tag_pairs
 
-def detected_legal_multitag_list(legal_multitags: dict, tagdb: object_utils.RPLTagDatabase) -> list:
+
+def detected_legal_multitag_list(
+    legal_multitags: dict[int, dict[int, list[list]]], tagdb: object_utils.RPLTagDatabase
+) -> list[list]:
     """
     Converts and sorts detected multitag pairs into a list matching the multitag templates.
 
@@ -156,7 +171,10 @@ def detected_legal_multitag_list(legal_multitags: dict, tagdb: object_utils.RPLT
 
     return legal_multitag_list
 
-def tag_corners_from_these_corners(detection_index_list: list, these_corners: list) -> list:
+
+def tag_corners_from_these_corners(
+    detection_index_list: list[int], these_corners: list[np.ndarray]
+) -> list[np.ndarray]:
     """
     Retrieves corners corresponding to detected indices.
 
@@ -168,13 +186,13 @@ def tag_corners_from_these_corners(detection_index_list: list, these_corners: li
         list: List of corners corresponding to the detection indices.
     """
     tag_corners = []
-    
+
     for d in detection_index_list:
         if isinstance(d, int):
             tag_corners.append(these_corners[d])
         elif isinstance(d, list):
             tag_corners.append(these_corners[d[0]])
-    
+
     return tag_corners
 
 
@@ -185,7 +203,7 @@ def detected_multitag_poses(
     these_corners: list,
     ippe_results: list,
     tag_size: float = 1.0,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> list:
     """
     Computes poses for detected multitag candidates based on camera parameters and IPPE results.
@@ -210,50 +228,53 @@ def detected_multitag_poses(
         ordered_tag_list = mt_record[2]
 
         if verbose:
-            print(f'{mt_ID:2} {tag_group:2}   ', ordered_tag_list)
+            print(f"{mt_ID:2} {tag_group:2}   ", ordered_tag_list)
 
         Ntags = len(ordered_tag_list)
-        if Ntags>1:
+        if Ntags > 1:
             tag_corners = tag_corners_from_these_corners(ordered_tag_list, these_corners)
             rvecs, tvecs = multitag_utils.consistent_coplanar_poses(
                 tag_corners, tag_size, camera_params, kit_and_kaboodle=False
             )
 
             if verbose:
-                print('ordered_tag_list', ordered_tag_list)
-                print('rvecs',rvecs)
-                print('tvecs',tvecs)
+                print("ordered_tag_list", ordered_tag_list)
+                print("rvecs", rvecs)
+                print("tvecs", tvecs)
 
-            multitag_list[mt_dex].append([rvecs[0], tvecs[0]])  
+            multitag_list[mt_dex].append([rvecs[0], tvecs[0]])
 
-        elif Ntags==1:
-            errs =  ippe_results[ordered_tag_list[0][0]][3]
+        elif Ntags == 1:
+            errs = ippe_results[ordered_tag_list[0][0]][3]
             if multitag_utils.pose_rotation_ambiguity_test(errs):
                 rvecs = ippe_results[ordered_tag_list[0][0]][1]
                 tvecs = ippe_results[ordered_tag_list[0][0]][2]
                 which_one = 0 if errs[1] >= errs[0] else 1
-                multitag_list[mt_dex].append([rvecs[which_one].flatten(),tvecs[which_one].flatten()])           # *** THIS IS EXPEDIENT HACK
+                multitag_list[mt_dex].append(
+                    [rvecs[which_one].flatten(), tvecs[which_one].flatten()]
+                )  # *** THIS IS EXPEDIENT HACK
                 if verbose:
-                    print('rvecs',rvecs[which_one].flatten())
-                    print('tvecs',tvecs[which_one].flatten())
+                    print("rvecs", rvecs[which_one].flatten())
+                    print("tvecs", tvecs[which_one].flatten())
             else:
                 # Single tag, two solutions too close to choose between -- discard this tag as "un-estimable"
                 multitag_list[mt_dex].append([])
                 if verbose:
                     contrast = np.abs(errs[0] - errs[1]) / (errs[0] + errs[1])
-                    print(f'DISCARD THIS POSE ESTIMATE: e0 = {errs[0]:0.3f}, e1 = {errs[1]:0.3f}, contrast = {contrast:0.2f}')
-    
-    return multitag_list
+                    print(
+                        f"DISCARD THIS POSE ESTIMATE: e0 = {errs[0]:0.3f}, e1 = {errs[1]:0.3f}, contrast = {contrast:0.2f}"
+                    )
 
+    return multitag_list
 
 
 def wrapped_up_detection_pipeline_function(
     img: np.ndarray,
     camera: dict,
     tag_size: float = 1.0,
-    tag_family: str = 'tag36h11',
-    undistorted_fname: str = 'undistorted.png',
-    overlay_fname: str = 'overlay.png'
+    tag_family: str = "tag36h11",
+    undistorted_fname: str = "undistorted.png",
+    overlay_fname: str = "overlay.png",
 ) -> tuple:
     """
     Processes an image through a complete AprilTag detection pipeline, including undistortion,
@@ -274,15 +295,15 @@ def wrapped_up_detection_pipeline_function(
             - ippe_results (list): Results of the IPPE (Iterative Pose and Pose Estimation) for the detected tags.
     """
     # Extract camera parameters from the camera calibration data
-    mtx = camera['mtx']
-    dist = camera['dist']
-    rvecs = camera['rvecs']
-    tvecs = camera['tvecs']
-    img_h = camera['img_h']
-    img_w = camera['img_w']
-    newcameramtx = camera['newcameramtx']
-    roi = camera['roi']
-
+    mtx = camera["mtx"]
+    dist = camera["dist"]
+    rvecs = camera["rvecs"]
+    tvecs = camera["tvecs"]
+    img_h = camera["img_h"]
+    img_w = camera["img_w"]
+    newcameramtx = camera["newcameramtx"]
+    roi = camera["roi"]
+    print(rvecs, tvecs, img_h, img_w, roi)
     camera_params = camera_utils.camera_params_from_matrix(newcameramtx)
 
     # Undistort the input image
@@ -296,25 +317,19 @@ def wrapped_up_detection_pipeline_function(
         tag_size=tag_size,
         output_images=False,
         display_images=False,
-        detection_window_name='AprilTag',
-        verbose=False
+        detection_window_name="AprilTag",
+        verbose=False,
     )
     cv2.imwrite(overlay_fname, overlay)
 
     # Extract detected tag IDs and corners
-    these_tag_IDs = multitag_utils.value_from_all_tags(detections, 'ID')
-    these_corners = multitag_utils.value_from_all_tags(detections, 'Corners')
+    these_tag_IDs = multitag_utils.value_from_all_tags(detections, "ID")
+    these_corners = multitag_utils.value_from_all_tags(detections, "Corners")
 
     # Compute IPPE results
-    ippe_results = multitag_utils.many_tag_ippe(
-        these_corners,
-        tag_size,
-        newcameramtx,
-        distCoeffs=None
-    )
+    ippe_results = multitag_utils.many_tag_ippe(these_corners, tag_size, newcameramtx, distCoeffs=None)
 
     return these_tag_IDs, these_corners, ippe_results
-
 
 
 def wrapped_up_multitag_finder(these_corners: list) -> list:
@@ -347,6 +362,7 @@ def wrapped_up_multitag_finder(these_corners: list) -> list:
 
     return tag_groupings
 
+
 def best_multitag_matches(membership_candidates: dict, verbose: bool = False) -> list:
     """
     Determines the best multitag matches from a list of candidate multitag groupings.
@@ -358,8 +374,9 @@ def best_multitag_matches(membership_candidates: dict, verbose: bool = False) ->
     Returns:
         list: List of best matches for each detected tag.
     """
+
     def decide_which_mt(candidates: list) -> list:
-        best_matches = [[0,0]]
+        best_matches = [[0, 0]]
         for mt in candidates:
             if mt[1] == best_matches[0][1]:
                 best_matches.append(mt)
@@ -370,12 +387,15 @@ def best_multitag_matches(membership_candidates: dict, verbose: bool = False) ->
     best_candidates = []
     for t in membership_candidates:
         best = decide_which_mt(membership_candidates[t])
-        best_candidates.append([t,best])
+        best_candidates.append([t, best])
         if verbose:
-            print(f'{t:3} {best[0][0]:3} {best[0][1]:3}')
+            print(f"{t:3} {best[0][0]:3} {best[0][1]:3}")
     return best_candidates
 
-def find_multitag_candidates(tag_groups: list, these_tag_IDs: list, RPLtag_db: object_utils.RPLTagDatabase, verbose: bool = False) -> dict:
+
+def find_multitag_candidates(
+    tag_groups: list, these_tag_IDs: list, RPLtag_db: object_utils.RPLTagDatabase, verbose: bool = False
+) -> dict:
     """
     Finds potential multitag candidates from detected tag groupings and registered multitag database.
 
@@ -390,7 +410,7 @@ def find_multitag_candidates(tag_groups: list, these_tag_IDs: list, RPLtag_db: o
     """
     membership_candidates = {}
     if verbose:
-        print(' G   T   ID     MT tags      GROUP tags               MT_in_GROUP  MISSING')
+        print(" G   T   ID     MT tags      GROUP tags               MT_in_GROUP  MISSING")
 
     for g_dex, t_group in enumerate(tag_groups):
         for t_dex in t_group:
@@ -404,7 +424,7 @@ def find_multitag_candidates(tag_groups: list, these_tag_IDs: list, RPLtag_db: o
                         membership_candidates[mt_ID][g_dex] = []
                     membership_candidates[mt_ID][g_dex].append([t_dex, tag_ID])
                     if verbose:
-                        print(f'{g_dex:2} {t_dex:2} {tag_ID:2} {mt_ID:2}')
+                        print(f"{g_dex:2} {t_dex:2} {tag_ID:2} {mt_ID:2}")
 
     # Remove incomplete or incompatible multitag candidates
     keys_to_drop = []
@@ -418,10 +438,11 @@ def find_multitag_candidates(tag_groups: list, these_tag_IDs: list, RPLtag_db: o
 
     for kg in keys_to_drop:
         if verbose:
-            print('dropping', kg, membership_candidates[kg[0]][kg[1]])
+            print("dropping", kg, membership_candidates[kg[0]][kg[1]])
         membership_candidates[kg[0]].pop(kg[1], None)
 
     return membership_candidates
+
 
 def print_legal_multitags(legal_multitags: dict) -> None:
     """
@@ -430,22 +451,11 @@ def print_legal_multitags(legal_multitags: dict) -> None:
     Args:
         legal_multitags (dict): Dictionary of legal multitags with their groupings.
     """
-    print(f' M  G   [detection, ID] pairs')
-    print(f'-- --   ---------------------------------')
+    print(" M  G   [detection, ID] pairs")
+    print("-- --   ---------------------------------")
     for mt in legal_multitags:
         if 0:
             print(legal_multitags[mt])
         else:
             for g in legal_multitags[mt]:
-                print(f'{mt:2} {g:2}  ', legal_multitags[mt][g])
-
-
-
-
-
-
-
-
-
-
-
+                print(f"{mt:2} {g:2}  ", legal_multitags[mt][g])

@@ -1,10 +1,32 @@
-import numpy as np
+"""
+`apriltag_utils.py`
+
+This module provides utility functions for working with AprilTag detections. It includes functions for retrieving and converting detection data, visualizing detection results, and performing pose estimation.
+
+Key Functions:
+- `value_by_field`: Extracts a specific field value from an AprilTag detection.
+- `dict_from_detection`: Converts an AprilTag detection to a dictionary of field names and values.
+- `sketch_detections`: Plots the centers of detected AprilTags on a 2D plot.
+- `print_detection_essentials`: Prints essential details from AprilTag detections, including ID, center, rotation, and translation vectors.
+- `tag_opoints`: Generates 3D coordinates of the corners of an AprilTag based on its size.
+- `ippe`: Solves the Iterative Pose Pose Estimation (IPPE) method for pose reconstruction.
+- `build_rstr` and `build_tstr`: Formats rotation and translation vectors as strings.
+- `print_ippe_solutions`: Prints the results of IPPE solutions including rotation vectors, translation vectors, and errors.
+- `apriltag_image`: Detects AprilTags in static images and optionally saves or displays the annotated results.
+- `detect_apriltags`: Detects AprilTags in a single image file.
+- `destroy_cv_windows`: Closes all OpenCV windows and waits briefly for proper closure.
+
+This module facilitates the detection, visualization, and analysis of AprilTags in images, making it easier to integrate AprilTag functionality into Python applications.
+"""
+
+import os
+from argparse import ArgumentParser
+
+import apriltag
 import cv2
 import matplotlib.pyplot as plt
-import apriltag
-from argparse import ArgumentParser
-import os
-import cv2
+import numpy as np
+
 
 def value_by_field(detection: apriltag.Detection, field):
     """
@@ -22,6 +44,7 @@ def value_by_field(detection: apriltag.Detection, field):
         return None
     return detection[fields.index(field)]
 
+
 def dict_from_detection(detection: apriltag.Detection):
     """
     Create a dictionary from a detection's fields and values.
@@ -37,6 +60,7 @@ def dict_from_detection(detection: apriltag.Detection):
         detection_dict[field] = value
     return detection_dict
 
+
 def sketch_detections(detections):
     """
     Plot the centers of detections on a 2D plot.
@@ -45,14 +69,15 @@ def sketch_detections(detections):
         detections (list): A list of detections.
     """
     for detection in detections[0::4]:
-        ID = value_by_field(detection, 'ID')
-        center = value_by_field(detection, 'Center')
+        ID = value_by_field(detection, "ID")
+        center = value_by_field(detection, "Center")
         if center is not None:
-            plt.plot(center[0], center[1], 'ko')
+            plt.plot(center[0], center[1], "ko")
             plt.text(center[0], center[1], str(ID), fontsize=12)
 
     plt.gca().invert_yaxis()
     plt.show()
+
 
 def print_detection_essentials(detections):
     """
@@ -62,18 +87,19 @@ def print_detection_essentials(detections):
         detections (list): A list of detections.
     """
     for index, detection in enumerate(detections[0::4]):
-        ID = value_by_field(detection, 'ID')
-        center = value_by_field(detection, 'Center')
+        ID = value_by_field(detection, "ID")
+        center = value_by_field(detection, "Center")
         pose = np.array(detections[4 * index + 1])
         rvec, _ = cv2.Rodrigues(pose[:3, :3])
         rvec = rvec.T[0]
         tvec = pose[:3, 3]
 
-        center_str = '[' + ''.join([f'{v:7.2f}' for v in center]) + ']'
-        rvec_str = '[' + ''.join([f'{v:6.2f}' for v in rvec]) + ']'
-        tvec_str = '[' + ''.join([f'{v:6.2f}' for v in tvec]) + ']'
-        
-        print(f'{index:2}: {ID:2} {center_str} {rvec_str} {tvec_str}')
+        center_str = "[" + "".join([f"{v:7.2f}" for v in center]) + "]"
+        rvec_str = "[" + "".join([f"{v:6.2f}" for v in rvec]) + "]"
+        tvec_str = "[" + "".join([f"{v:6.2f}" for v in tvec]) + "]"
+
+        print(f"{index:2}: {ID:2} {center_str} {rvec_str} {tvec_str}")
+
 
 def tag_opoints(tag_size):
     """
@@ -85,13 +111,9 @@ def tag_opoints(tag_size):
     Returns:
         numpy.ndarray: A 3D array of the tag's corner points.
     """
-    opoints = np.array([
-        [-1, -1, 0],
-        [ 1, -1, 0],
-        [ 1,  1, 0],
-        [-1,  1, 0]
-    ]).reshape(-1, 1, 3) * 0.5 * tag_size
+    opoints = np.array([[-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0]]).reshape(-1, 1, 3) * 0.5 * tag_size
     return opoints
+
 
 def ippe(opoints, ipoints, camera_matrix, dist_coeffs=None):
     """
@@ -108,14 +130,15 @@ def ippe(opoints, ipoints, camera_matrix, dist_coeffs=None):
     """
     pts2d_i_np = np.ascontiguousarray(ipoints).reshape((-1, 1, 2))  # solvePnP needs contiguous arrays
     pts3d_i_np = np.ascontiguousarray(opoints).reshape((-1, 3))
-    
+
     return cv2.solvePnPGeneric(
         objectPoints=pts3d_i_np,
         imagePoints=pts2d_i_np,
         cameraMatrix=camera_matrix,
         distCoeffs=dist_coeffs,
-        flags=cv2.SOLVEPNP_IPPE
+        flags=cv2.SOLVEPNP_IPPE,
     )
+
 
 def build_rstr(rvec):
     """
@@ -127,7 +150,8 @@ def build_rstr(rvec):
     Returns:
         str: A formatted string representing the rotation vector.
     """
-    return '[' + ''.join([f'{v:7.3f}' for v in rvec]) + ']'
+    return "[" + "".join([f"{v:7.3f}" for v in rvec]) + "]"
+
 
 def build_tstr(tvec):
     """
@@ -139,7 +163,8 @@ def build_tstr(tvec):
     Returns:
         str: A formatted string representing the translation vector.
     """
-    return '[' + ''.join([f'{v:8.3f}' for v in tvec]) + ']'
+    return "[" + "".join([f"{v:8.3f}" for v in tvec]) + "]"
+
 
 def print_ippe_solutions(rvecs, tvecs, errs):
     """
@@ -150,22 +175,23 @@ def print_ippe_solutions(rvecs, tvecs, errs):
         tvecs (list): A list of translation vectors.
         errs (list): A list of errors associated with each solution.
     """
-    print('          rvec                     tvec               err ')
-    print('----------------------- --------------------------    ----')
+    print("          rvec                     tvec               err ")
+    print("----------------------- --------------------------    ----")
     for rvec, tvec, e in zip(rvecs, tvecs, errs):
         rstr = build_rstr(rvec.T[0])
         tstr = build_tstr(tvec.T[0])
-        estr = f'{e[0]:7.2f}'
+        estr = f"{e[0]:7.2f}"
         print(rstr, tstr, estr)
 
+
 def apriltag_image(
-    input_images=['AprilTag/media/input/single_tag.jpg', 'AprilTag/media/input/multiple_tags.jpg'],
+    input_images=["AprilTag/media/input/single_tag.jpg", "AprilTag/media/input/multiple_tags.jpg"],
     camera_params=(3156.71852, 3129.52243, 359.097908, 239.736909),
-    tag_size=1.0, # inches
+    tag_size=1.0,  # inches
     output_images=False,
     display_images=True,
-    detection_window_name='AprilTag',
-    verbose=True
+    detection_window_name="AprilTag",
+    verbose=True,
 ):
     """
     Detect AprilTags from static images and optionally save or display the results.
@@ -183,12 +209,12 @@ def apriltag_image(
         tuple: Result and overlay images.
     """
 
-    parser = ArgumentParser(description='Detect AprilTags from static images.')
+    parser = ArgumentParser(description="Detect AprilTags from static images.")
     apriltag.add_arguments(parser)
     options = None
 
     verbose_detect_tags = 3 if verbose else 0
-    
+
     detector = apriltag.Detector(options, searchpath=apriltag._get_dll_path())
 
     results = []
@@ -197,10 +223,10 @@ def apriltag_image(
     for image_path in input_images:
         img = cv2.imread(image_path)
         if img is None:
-            print(f'Error: Unable to read image {image_path}.')
+            print(f"Error: Unable to read image {image_path}.")
             continue
 
-        print(f'Reading {os.path.split(image_path)[1]}...\n')
+        print(f"Reading {os.path.split(image_path)[1]}...\n")
 
         result, overlay = apriltag.detect_tags(
             img,
@@ -209,16 +235,18 @@ def apriltag_image(
             tag_size=tag_size,
             vizualization=3,
             verbose=verbose_detect_tags,
-            annotation=True
+            annotation=True,
         )
 
         if output_images:
-            output_path = os.path.join('AprilTag/media/output', os.path.basename(image_path).replace(os.path.splitext(image_path)[1], '.jpg'))
+            output_path = os.path.join(
+                "AprilTag/media/output", os.path.basename(image_path).replace(os.path.splitext(image_path)[1], ".jpg")
+            )
             cv2.imwrite(output_path, overlay)
 
         if display_images:
             cv2.imshow(detection_window_name, overlay)
-            while cv2.waitKey(5) < 0:   
+            while cv2.waitKey(5) < 0:
                 pass
 
         results.append(result)
@@ -226,11 +254,12 @@ def apriltag_image(
 
     return results, overlays
 
+
 def detect_apriltags(
     input_image,
     camera_params=(3156.71852, 3129.52243, 359.097908, 239.736909),
     tag_size=1.0,  # inches
-    verbose=True
+    verbose=True,
 ):
     """
     Detect AprilTags from a single image.
@@ -244,7 +273,7 @@ def detect_apriltags(
     Returns:
         tuple: Result of the detection.
     """
-    parser = ArgumentParser(description='Detect AprilTags from static images.')
+    parser = ArgumentParser(description="Detect AprilTags from static images.")
     apriltag.add_arguments(parser)
     options = None
 
@@ -254,7 +283,7 @@ def detect_apriltags(
 
     img = cv2.imread(input_image)
     if img is None:
-        print(f'Error: Unable to read image {input_image}.')
+        print(f"Error: Unable to read image {input_image}.")
         return None
 
     result, _ = apriltag.detect_tags(
@@ -264,10 +293,11 @@ def detect_apriltags(
         tag_size=tag_size,
         visualization=0,
         verbose=verbose_detect_tags,
-        annotation=False
+        annotation=False,
     )
 
     return result
+
 
 def destroy_cv_windows():
     """
@@ -275,4 +305,3 @@ def destroy_cv_windows():
     """
     cv2.destroyAllWindows()
     cv2.waitKey(1)
-

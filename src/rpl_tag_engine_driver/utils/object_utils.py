@@ -1,17 +1,36 @@
-import numpy as np
-import matplotlib.pyplot as plt
+"""
+Module for creating instances of Database Entries, Databases, Measurements, Detections, and others.
+"""
+
 import sqlite3
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 class DBEntry:
     """
     A base class for database entries with a name attribute.
     """
 
-    def __init__(self, name: str = ''):
+    def __init__(self, name: str = ""):
+        """
+        Initialize a new database entry with the given name.
+
+        Args:
+            name (str, optional): The name of the database entry. Default is an empty string.
+        """
         self.name = name
 
     def __str__(self) -> str:
+        """
+        Return the string representation of the database entry.
+
+        Returns:
+            str: The name of the database entry.
+        """
         return self.name
+
 
 class BaseDatabase:
     """
@@ -19,10 +38,13 @@ class BaseDatabase:
     """
 
     def __init__(self):
-        self.next_ID = 0            
+        """
+        Initialize an empty database with no entries.
+        """
+        self.next_ID = 0
         self.max_ID = -1
-        self.entries = {}       
-        self.lookup = {}        
+        self.entries = {}
+        self.lookup = {}
 
     def __str__(self, verbose: bool = False) -> str:
         """
@@ -34,19 +56,22 @@ class BaseDatabase:
         Returns:
             str: A string representing the database.
         """
-        res = f'{self.next_ID},{len(self.entries)},{len(self.lookup)}\n'
+        res = f"{self.next_ID},{len(self.entries)},{len(self.lookup)}\n"
         if verbose:
             for ID in self.entries:
-                res += f'{ID},{self.entries[ID].name}\n'
+                res += f"{ID},{self.entries[ID].name}\n"
         return res
 
     def clear(self):
+        """
+        Clear all entries and reset the database to its initial state.
+        """
         self.next_ID = 0
         self.max_ID = -1
         self.entries.clear()
         self.lookup.clear()
 
-    def add_by_id(self, entry_id: int, new_entry: DBEntry, entity_name: str = 'entity'):
+    def add_by_id(self, entry_id: int, new_entry: DBEntry, entity_name: str = "entity"):
         """
         Add a new entry to the database by a specific ID.
 
@@ -59,10 +84,10 @@ class BaseDatabase:
             bool: True if the entry was added successfully, False otherwise.
         """
         if entry_id in self.entries:
-            print(f'ERROR: cannot overwrite {entity_name} with ID {entry_id}.')
+            print(f"ERROR: cannot overwrite {entity_name} with ID {entry_id}.")
             return False
         if new_entry.name in self.lookup:
-            print(f'ERROR: {entity_name} with name {new_entry.name} already exists.')
+            print(f"ERROR: {entity_name} with name {new_entry.name} already exists.")
             return False
         self.entries[entry_id] = new_entry
         self.lookup[new_entry.name] = entry_id
@@ -71,7 +96,7 @@ class BaseDatabase:
             self.next_ID = self.max_ID + 1
         return True
 
-    def add(self, new_entry : DBEntry, entity_name: str ='entity') -> bool:
+    def add(self, new_entry: DBEntry, entity_name: str = "entity") -> bool:
         """
         Add a new entry to the database with an automatically assigned ID.
 
@@ -85,17 +110,36 @@ class BaseDatabase:
         return self.add_by_id(self.next_ID, new_entry, entity_name)
 
     def exists(self, name: str) -> bool:
+        """
+        Check if an entry with the given name exists in the database.
+
+        Args:
+            name (str): The name to check for existence.
+
+        Returns:
+            bool: True if an entry with the given name exists, False otherwise.
+        """
         return name in self.lookup
 
     def id_exists(self, entry_id: int) -> bool:
+        """
+        Check if an entry with the given ID exists in the database.
+
+        Args:
+            entry_id (int): The ID to check for existence.
+
+        Returns:
+            bool: True if an entry with the given ID exists, False otherwise.
+        """
         return entry_id in self.entries
+
 
 class MultitagTemplate(DBEntry):
     """
     A class representing a template for multitags, containing multiple tag slots.
     """
 
-    def __init__(self, name: str ='SINGLE', offset: list = None, scale: float = 1.0, theta: float = 0.0):
+    def __init__(self, name: str = "SINGLE", offset: list = None, scale: float = 1.0, theta: float = 0.0):
         """
         Initialize a MultitagTemplate with a default tag slot.
 
@@ -110,9 +154,15 @@ class MultitagTemplate(DBEntry):
         self.add_tag_slot(offset or [0.0, 0.0], scale, theta)
 
     def __str__(self) -> str:
-        res = f'{self.name:10} {len(self.tag_slots):2} '
+        """
+        Return a string representation of the MultitagTemplate.
+
+        Returns:
+            str: A string representing the template, including its name, number of tag slots, and details of each slot.
+        """
+        res = f"{self.name:10} {len(self.tag_slots):2} "
         for slot in self.tag_slots:
-            res += f'[ [{slot[0][0]:5.2f}, {slot[0][1]:5.2f} ], {slot[1]:5.2f}, {slot[2]:4.0f} ] '
+            res += f"[ [{slot[0][0]:5.2f}, {slot[0][1]:5.2f} ], {slot[1]:5.2f}, {slot[2]:4.0f} ] "
         return res
 
     def tag_corners_relative(self, offset: list, scale: float, theta: float) -> np.ndarray:
@@ -127,18 +177,28 @@ class MultitagTemplate(DBEntry):
         Returns:
             np.ndarray: An array of corner positions.
         """
-        ox = offset[0] * 2 / scale  
+        ox = offset[0] * 2 / scale
         oy = offset[1] * 2 / scale
         theta_rad = np.radians(theta)
-        s = np.sin(theta_rad)  
+        s = np.sin(theta_rad)
         c = np.cos(theta_rad)
 
-        corners = np.array([
-            -(c + s) + ox, -(c - s) - oy,  
-            (c - s) + ox, -(c + s) - oy,  
-            (c + s) + ox, (c - s) - oy,  
-            -(c - s) + ox, (c + s) - oy   
-        ]).reshape(-1, 2) * 0.5 * scale
+        corners = (
+            np.array(
+                [
+                    -(c + s) + ox,
+                    -(c - s) - oy,
+                    (c - s) + ox,
+                    -(c + s) - oy,
+                    (c + s) + ox,
+                    (c - s) - oy,
+                    -(c - s) + ox,
+                    (c + s) - oy,
+                ]
+            ).reshape(-1, 2)
+            * 0.5
+            * scale
+        )
 
         return corners
 
@@ -150,7 +210,7 @@ class MultitagTemplate(DBEntry):
             offset (list): The offset of the new tag slot.
             scale (float): The scale of the new tag slot.
             theta (float): The rotation of the new tag slot in degrees.
-        """      
+        """
         offset = offset or [0.0, 0.0]
         corners = self.tag_corners_relative(offset, scale, theta)
         self.tag_slots.append([offset, scale, theta, corners])
@@ -171,17 +231,18 @@ class MultitagTemplate(DBEntry):
         elif slot_num < len(self.tag_slots):
             opoints = self.tag_slots[slot_num][3]
         else:
-            print(f'ERROR: slot number {slot_num} is out of range')
+            print(f"ERROR: slot number {slot_num} is out of range")
             opoints = self.tag_slots[0][3]
 
         N = opoints.shape[0]
         opoints = np.hstack((opoints * tag_zero_size, np.zeros((N, 1)))).reshape(N, 1, 3)
         return opoints
 
+
 class MultitagTemplateDatabase(BaseDatabase):
     """
     A database class for managing multitag templates.
-    Inherits from BaseDatabase and provides methods for adding, 
+    Inherits from BaseDatabase and provides methods for adding,
     retrieving, saving, and loading multitag templates.
     """
 
@@ -190,23 +251,23 @@ class MultitagTemplateDatabase(BaseDatabase):
         Return a string representation of the database.
         If verbose is True, includes detailed information about each template.
         """
-        res = f'Next ID: {self.next_ID}, Entries: {len(self.entries)}\n'
+        res = f"Next ID: {self.next_ID}, Entries: {len(self.entries)}\n"
         if verbose:
             for template_id, template in self.entries.items():
-                res += f'{template_id}: {template}\n'
+                res += f"{template_id}: {template}\n"
         return res
 
     def add(self, new_template):
         """
         Add a new template to the database.
-        
+
         Args:
             new_template (MultitagTemplate): The template to add.
-        
+
         Returns:
             int: The ID of the newly added template.
         """
-        return super().add(new_template, entity_name='template')
+        return super().add(new_template, entity_name="template")
 
     def add_by_signature(self, new_template_signature):
         """
@@ -214,7 +275,7 @@ class MultitagTemplateDatabase(BaseDatabase):
 
         Args:
             new_template_signature (tuple): A tuple containing the template signature.
-        
+
         Returns:
             int: The ID of the newly added template.
         """
@@ -231,7 +292,7 @@ class MultitagTemplateDatabase(BaseDatabase):
 
         Args:
             template_name (str): The name of the template.
-        
+
         Returns:
             int: The ID of the template, or -1 if not found.
         """
@@ -247,7 +308,7 @@ class MultitagTemplateDatabase(BaseDatabase):
 
         Args:
             template_name (str): The name of the template.
-        
+
         Returns:
             MultitagTemplate: The template object, or -1 if not found.
         """
@@ -263,17 +324,17 @@ class MultitagTemplateDatabase(BaseDatabase):
 
         Args:
             template_id (int): The ID of the template.
-        
+
         Returns:
             MultitagTemplate: The template object, or -1 if not found.
         """
         template = self.entries.get(template_id)
         if template:
             return template
-        print(f'ERROR: Template with ID {template_id} not found')
+        print(f"ERROR: Template with ID {template_id} not found")
         return -1
 
-    def load(self, template_database_filename):                  
+    def load(self, template_database_filename):
         """
         Load templates from a database file into memory.
 
@@ -286,8 +347,8 @@ class MultitagTemplateDatabase(BaseDatabase):
         self.clear()
 
         query = """
-        SELECT template_ID, template_name, slot_number, total_slots, 
-               offset_x, offset_y, scale, theta 
+        SELECT template_ID, template_name, slot_number, total_slots,
+               offset_x, offset_y, scale, theta
         FROM templates
         """
         template_records = cur.execute(query).fetchall()
@@ -297,14 +358,17 @@ class MultitagTemplateDatabase(BaseDatabase):
             if not self.id_exists(template_id):
                 new_template = MultitagTemplate(name=name)
                 new_template.tag_slots = [None] * total_slots
-                super().add_by_id(template_id, new_template, entity_name='multitag')
+                super().add_by_id(template_id, new_template, entity_name="multitag")
 
-            slot_value = [[offset_x, offset_y], scale, theta, 
-                          new_template.tag_corners_relative(offset=[offset_x, offset_y], scale=scale, theta=theta)]
+            slot_value = [
+                [offset_x, offset_y],
+                scale,
+                theta,
+                new_template.tag_corners_relative(offset=[offset_x, offset_y], scale=scale, theta=theta),
+            ]
             self.entries[template_id].tag_slots[slot_number] = slot_value
 
         con.close()
-
 
     def save(self, template_database_filename):
         """
@@ -318,28 +382,29 @@ class MultitagTemplateDatabase(BaseDatabase):
 
         cur.execute("""
         CREATE TABLE IF NOT EXISTS templates(
-            template_ID INTEGER, 
-            template_name TEXT, 
-            slot_number INTEGER, 
-            total_slots INTEGER, 
-            offset_x REAL, 
-            offset_y REAL, 
-            scale REAL, 
+            template_ID INTEGER,
+            template_name TEXT,
+            slot_number INTEGER,
+            total_slots INTEGER,
+            offset_x REAL,
+            offset_y REAL,
+            scale REAL,
             theta REAL
         )
-        """)                                                       
+        """)
         data = []
         for template_id, template in self.entries.items():
             template_name = template.name
             total_slots = len(template.tag_slots)
             for slot_number, slot in enumerate(template.tag_slots):
-                data.append((template_id, template_name, slot_number, total_slots, slot[0][0], slot[0][1], slot[1], slot[2]))
+                data.append(
+                    (template_id, template_name, slot_number, total_slots, slot[0][0], slot[0][1], slot[1], slot[2])
+                )
 
         cur.executemany("INSERT INTO templates VALUES (?, ?, ?, ?, ?, ?, ?, ?)", data)
 
         con.commit()
         con.close()
-
 
 
 class Multitag(DBEntry):
@@ -356,7 +421,7 @@ class Multitag(DBEntry):
             name (str, optional): The name of the multitag. Defaults to None.
         """
         super(Multitag, self).__init__(name)
-        self.tags = []    
+        self.tags = []
         self.multitag_template = None
 
     def __str__(self):
@@ -366,9 +431,9 @@ class Multitag(DBEntry):
         Returns:
             str: The string representation of the multitag.
         """
-        res = f'{self.name:20} {self.multitag_template:10} [ '
-        res += ' '.join(f'{int(ID):5}' for ID in self.tags)
-        return res + ']'
+        res = f"{self.name:20} {self.multitag_template:10} [ "
+        res += " ".join(f"{int(ID):5}" for ID in self.tags)
+        return res + "]"
 
     def is_tag_used(self, tag_ID):
         """
@@ -381,6 +446,7 @@ class Multitag(DBEntry):
             bool: True if the tag ID is used, False otherwise.
         """
         return tag_ID in self.tags
+
 
 class MultitagDatabase(BaseDatabase):
     """A database class for handling multitag entities with support for membership tracking."""
@@ -400,10 +466,10 @@ class MultitagDatabase(BaseDatabase):
         Returns:
             str: The string representation of the database.
         """
-        res = f'next_ID {self.next_ID}, entries {len(self.entries)}, membership entries {len(self.membership)}\n'
+        res = f"next_ID {self.next_ID}, entries {len(self.entries)}, membership entries {len(self.membership)}\n"
         if verbose:
             for ID in self.entries:
-                res += f'{ID:3}  {self.entries[ID]}\n'
+                res += f"{ID:3}  {self.entries[ID]}\n"
         return res
 
     def clear(self):
@@ -435,7 +501,7 @@ class MultitagDatabase(BaseDatabase):
             bool: True if the multitag was added successfully, False otherwise.
         """
         multitag_ID = self.next_ID
-        success_flag = super().add(multitag, entity_name='multitag')
+        success_flag = super().add(multitag, entity_name="multitag")
         if success_flag:
             self.update_membership(multitag_ID, multitag)
         return success_flag
@@ -458,7 +524,7 @@ class MultitagDatabase(BaseDatabase):
         new_multitag.multitag_template = template_name
         return self.add(new_multitag)
 
-    def load(self, multitag_database_filename):                  
+    def load(self, multitag_database_filename):
         """
         Load multitags from a database file.
 
@@ -476,9 +542,9 @@ class MultitagDatabase(BaseDatabase):
             new_multitag = Multitag()
             multitag_ID = r[0]
             new_multitag.name = r[1]
-            new_multitag.tags = [int(tid) for tid in r[2].split(',')]
+            new_multitag.tags = [int(tid) for tid in r[2].split(",")]
             new_multitag.multitag_template = r[3]
-            super().add_by_id(multitag_ID, new_multitag, entity_name='multitag')
+            super().add_by_id(multitag_ID, new_multitag, entity_name="multitag")
             self.update_membership(multitag_ID, new_multitag)
 
         con.close()
@@ -498,7 +564,7 @@ class MultitagDatabase(BaseDatabase):
         data = []
         for multitag_ID in self.entries:
             multitag_name = self.entries[multitag_ID].name
-            tag_ID_list = ','.join([str(tID) for tID in self.entries[multitag_ID].tags])
+            tag_ID_list = ",".join([str(tID) for tID in self.entries[multitag_ID].tags])
             template_name = self.entries[multitag_ID].multitag_template
             data.append((multitag_ID, multitag_name, tag_ID_list, template_name))
 
@@ -533,21 +599,22 @@ class MultitagDatabase(BaseDatabase):
             str: The name of the matching multitag, or an empty string if no match is found.
         """
         if not tag_ID_list:
-            return ''
-        
+            return ""
+
         for mt in self.entries:
             if self.entries[mt].is_tag_used(tag_ID_list[0]):
                 if len(tag_ID_list) == len(self.entries[mt].tags):
                     if all(tid in self.entries[mt].tags for tid in tag_ID_list):
                         return self.entries[mt].name
-        return ''
+        return ""
+
 
 class LabObject(DBEntry):
     """
     A class for representing a lab object with associated multitag IDs and a frame.
     """
 
-    def __init__(self, name: str = ''):
+    def __init__(self, name: str = ""):
         """
         Initialize a new LabObject instance.
 
@@ -568,9 +635,9 @@ class LabObject(DBEntry):
         Returns:
             str: A string representation of the lab object.
         """
-        res = f'LabObject(name={self.name}, frame={self.frame}, multitag_IDs={self.multitag_IDs})'
+        res = f"LabObject(name={self.name}, frame={self.frame}, multitag_IDs={self.multitag_IDs})"
         if verbose:
-            res += f'\nMultitag IDs: {self.multitag_IDs}'
+            res += f"\nMultitag IDs: {self.multitag_IDs}"
         return res
 
     def add_multitag(self, multitag_ID: int):
@@ -593,14 +660,18 @@ class LabObject(DBEntry):
             bool: True if the frame was set successfully, False otherwise.
         """
         if multitag_ID not in self.multitag_IDs:
-            print(f'ERROR: multitag with ID {multitag_ID} is not associated with this LabObject')
+            print(f"ERROR: multitag with ID {multitag_ID} is not associated with this LabObject")
             return False
         self.frame = multitag_ID
         return True
 
     def is_tag_used(self, tag_ID: int) -> bool:
+        """
+        TBD
+        """
         # TBD
         pass
+
 
 class ObjectDatabase(BaseDatabase):
     """
@@ -608,6 +679,9 @@ class ObjectDatabase(BaseDatabase):
     """
 
     def __str__(self):
+        """
+        TBD
+        """
         # TBD
         pass
 
@@ -616,7 +690,7 @@ class ObjectDatabase(BaseDatabase):
         Clear all entries in the object database.
         """
         super().clear()
-        
+
     def add(self, new_obj):
         """
         Add a new object to the database.
@@ -627,47 +701,96 @@ class ObjectDatabase(BaseDatabase):
         Returns:
             int: The ID assigned to the new object.
         """
-        return super().add(new_obj, entity_name='object')
+        return super().add(new_obj, entity_name="object")
 
     def load(self, database_filename):
+        """
+        TBD
+        """
         # TBD
         pass
 
     def save(self, database_filename):
+        """
+        TBD
+        """
         # TBD
         pass
 
+
 class camera_model(DBEntry):
+    """
+    A class representing a camera model with calibration parameters.
+
+    Attributes:
+        camera_matrix (np.ndarray): The camera matrix for intrinsic parameters.
+        distortion_params (np.ndarray): The distortion coefficients for lens distortion.
+    """
+
     def __init__(self, camera_matrix, distortion_params):
+        """
+        Initialize a camera model with the given camera matrix and distortion parameters.
+
+        Args:
+            camera_matrix (np.ndarray): The camera matrix for intrinsic parameters.
+            distortion_params (np.ndarray): The distortion coefficients for lens distortion.
+        """
         self.camera_matrix = camera_matrix
         self.distortion_params = distortion_params
         return
 
+
 class CameraDatabase(BaseDatabase):
+    """
+    TBD
+    """
+
     def __str__(self, verbose=False):
+        """
+        TBD
+        """
         # TBD
-        return ''
+        return ""
 
     def add(self, new_camera):
-        return super().add(new_camera, entity_name='camera')
+        """
+        TBD
+        """
+        return super().add(new_camera, entity_name="camera")
 
     def load(self, database_filename):
+        """
+        TBD
+        """
         # TBD
         pass
 
     def save(self, database_filename):
+        """
+        TBD
+        """
         # TBD
         pass
+
 
 class Measurement(DBEntry):
     """
     A class for representing a measurement associated with a reference and target multitag.
     """
 
-    def __init__(self, name: str = '', datestamp: str = '', reference_multitag_ID: int = None,
-                 target_multitag_ID: int = None, image_file: str = '', camera_file: str = '',
-                 relative_rvec: np.ndarray = None, relative_tvec: np.ndarray = None,
-                 reference_record: list = None, target_record: list = None):
+    def __init__(
+        self,
+        name: str = "",
+        datestamp: str = "",
+        reference_multitag_ID: int = None,
+        target_multitag_ID: int = None,
+        image_file: str = "",
+        camera_file: str = "",
+        relative_rvec: np.ndarray = None,
+        relative_tvec: np.ndarray = None,
+        reference_record: list = None,
+        target_record: list = None,
+    ):
         """
         Initialize a new Measurement instance.
 
@@ -701,12 +824,15 @@ class Measurement(DBEntry):
         Returns:
             str: A string representing the measurement details.
         """
-        return (f'Measurement(name={self.name}, datestamp={self.datestamp}, '
-                f'reference_multitag_ID={self.reference_multitag_ID}, '
-                f'target_multitag_ID={self.target_multitag_ID}, '
-                f'image_file={self.image_file}, camera_file={self.camera_file}, '
-                f'relative_rvec={self.relative_rvec}, relative_tvec={self.relative_tvec}, '
-                f'reference_record={self.reference_record}, target_record={self.target_record})')
+        return (
+            f"Measurement(name={self.name}, datestamp={self.datestamp}, "
+            f"reference_multitag_ID={self.reference_multitag_ID}, "
+            f"target_multitag_ID={self.target_multitag_ID}, "
+            f"image_file={self.image_file}, camera_file={self.camera_file}, "
+            f"relative_rvec={self.relative_rvec}, relative_tvec={self.relative_tvec}, "
+            f"reference_record={self.reference_record}, target_record={self.target_record})"
+        )
+
 
 class MeasurementDatabase:
     """
@@ -723,8 +849,11 @@ class MeasurementDatabase:
         self.lookup = {}
 
     def __str__(self, verbose=False):
+        """
+        TBD
+        """
         # TBD
-        return ''
+        return ""
 
     def clear(self):
         """
@@ -749,7 +878,7 @@ class MeasurementDatabase:
         """
         if self.next_ID in self.lookup:
             return False
-        
+
         self.lookup[self.next_ID] = [multitag_ref, multitag_other]
 
         if multitag_ref not in self.entries:
@@ -758,7 +887,7 @@ class MeasurementDatabase:
         if multitag_other not in self.entries[multitag_ref]:
             self.entries[multitag_ref][multitag_other] = []
 
-        self.entries[multitag_ref][multitag_other].append([self.next_ID]+new_meas)
+        self.entries[multitag_ref][multitag_other].append([self.next_ID] + new_meas)
         self.max_ID = self.next_ID
         self.next_ID += 1
 
@@ -780,9 +909,9 @@ class MeasurementDatabase:
             SELECT measurement_ID, multitag_ref, multitag_targ, img_fname, cam_fname, rvx, rvy, rvz, tvx, tvy, tvz
             FROM measurements
         """)
-        
+
         measurement_records = res.fetchall()
-        
+
         for r in measurement_records:
             measurement_ID = r[0]
             multitag_ref = r[1]
@@ -796,7 +925,7 @@ class MeasurementDatabase:
 
             if multitag_ref not in self.entries:
                 self.entries[multitag_ref] = {}
-            
+
             if multitag_other not in self.entries[multitag_ref]:
                 self.entries[multitag_ref][multitag_other] = []
 
@@ -844,27 +973,33 @@ class MeasurementDatabase:
                     cam_fname = record[2]
                     rvx, rvy, rvz = record[3]
                     tvx, tvy, tvz = record[4]
-                    
-                    data.append((
-                        measurement_ID,
-                        int(multitag_ref),
-                        int(multitag_other),
-                        img_fname,
-                        cam_fname,
-                        rvx,
-                        rvy,
-                        rvz,
-                        tvx,
-                        tvy,
-                        tvz
-                    ))
 
-        cur.executemany("""
+                    data.append(
+                        (
+                            measurement_ID,
+                            int(multitag_ref),
+                            int(multitag_other),
+                            img_fname,
+                            cam_fname,
+                            rvx,
+                            rvy,
+                            rvz,
+                            tvx,
+                            tvy,
+                            tvz,
+                        )
+                    )
+
+        cur.executemany(
+            """
             INSERT INTO measurements VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, data)
+        """,
+            data,
+        )
 
         con.commit()
         con.close()
+
 
 class RPLTagDatabase:
     """
@@ -877,7 +1012,7 @@ class RPLTagDatabase:
         """
         self.templates = MultitagTemplateDatabase()
         self.multitags = MultitagDatabase()
-        self.objects   = ObjectDatabase()
+        self.objects = ObjectDatabase()
         self.measurements = MeasurementDatabase()
 
     def __str__(self, verbose: bool = False) -> str:
@@ -890,10 +1025,15 @@ class RPLTagDatabase:
         Returns:
             str: A string representing the RPLTagDatabase.
         """
-        res = (self.templates.__str__(verbose=verbose) + '\n' +
-               self.multitags.__str__(verbose=verbose) + '\n' +
-               self.objects.__str__(verbose=verbose) + '\n' +
-               self.measurements.__str__(verbose=verbose))
+        res = (
+            self.templates.__str__(verbose=verbose)
+            + "\n"
+            + self.multitags.__str__(verbose=verbose)
+            + "\n"
+            + self.objects.__str__(verbose=verbose)
+            + "\n"
+            + self.measurements.__str__(verbose=verbose)
+        )
         return res
 
     def new_template(self, template_signature: str) -> bool:
@@ -921,7 +1061,7 @@ class RPLTagDatabase:
             bool: True if the multitag was added successfully, False otherwise.
         """
         if not self.templates.exists(template_name):
-            print(f'ERROR: template with name {template_name} not found.')
+            print(f"ERROR: template with name {template_name} not found.")
             return False
         return self.multitags.add_by_name(multitag_name, tag_ID_list, template_name)
 
@@ -939,7 +1079,7 @@ class RPLTagDatabase:
 
         # TBD, method "add_by_name" does not exist for an object.
 
-        #return self.objects.add_by_name(object_name, multitag_list)
+        # return self.objects.add_by_name(object_name, multitag_list)
         pass
 
     def new_measurement(self, ref_multitag: int, other_multitag: int, new_meas: list) -> bool:
@@ -955,7 +1095,7 @@ class RPLTagDatabase:
             bool: True if the measurement was added successfully, False otherwise.
         """
         return self.measurements.add(ref_multitag, other_multitag, new_meas)
-    
+
     def load(self, database_filename: str):
         """
         Load all data from the specified database file.
@@ -980,6 +1120,7 @@ class RPLTagDatabase:
         self.objects.save(database_filename)
         self.measurements.save(database_filename)
 
+
 def ax_plot_multitag(ax, mt: MultitagTemplate, fontsizes=[24, 18]):
     """
     Plot a multitag template on a given axis.
@@ -991,15 +1132,16 @@ def ax_plot_multitag(ax, mt: MultitagTemplate, fontsizes=[24, 18]):
     """
     fs1, fs2 = fontsizes
     for slotnum, corners in enumerate(mt.tag_slots):
-        ax.plot(corners[:,0],corners[:,1],'-')
-        ax.plot(corners[0,0],corners[0,1],'ko')
-        ax.text(np.mean(corners[:,0]), np.mean(corners[:,1]), str(slotnum), fontsize=fs2)
+        ax.plot(corners[:, 0], corners[:, 1], "-")
+        ax.plot(corners[0, 0], corners[0, 1], "ko")
+        ax.text(np.mean(corners[:, 0]), np.mean(corners[:, 1]), str(slotnum), fontsize=fs2)
 
-    ax.set_aspect('equal','box')
+    ax.set_aspect("equal", "box")
     ax.invert_yaxis()
-    ax.set_title(f'Multitag Template {mt.name}', fontsize=fs1)
-    ax.set_xlabel('X coordinate', fontsize=fs2)
-    ax.set_ylabel('Y coordinate (image sense)', fontsize=fs2)
+    ax.set_title(f"Multitag Template {mt.name}", fontsize=fs1)
+    ax.set_xlabel("X coordinate", fontsize=fs2)
+    ax.set_ylabel("Y coordinate (image sense)", fontsize=fs2)
+
 
 def plot_multitag_template(mt: MultitagTemplate):
     """

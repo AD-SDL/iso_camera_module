@@ -1,14 +1,19 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""
+Driver code for RPL Tag Camera Engine.
+"""
 
-import cv2
-from datetime import datetime
-from utils import apriltag_utils, object_utils, measurement_utils, camera_utils
 import argparse
 import json
-from typing import Dict, Optional, Tuple, List
+from datetime import datetime
+from typing import Optional
 
-class RPLTagEngine():
+import cv2
+from utils import camera_utils, measurement_utils, object_utils
+
+
+class RPLTagEngine:
     """
     A class to handle the detection and pose estimation of RPLTags in a video feed.
 
@@ -33,6 +38,7 @@ class RPLTagEngine():
         self.db_filename = database
         self.camera_fname = camera
         self.verbose = verbose
+        self.status = "INIT"
 
         self.vid = cv2.VideoCapture(0)
         self.vid.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
@@ -45,9 +51,9 @@ class RPLTagEngine():
         self.the_db.load(self.db_filename)
 
         self.the_camera = camera_utils.load_camera(self.camera_fname)
-        self.camera_params = camera_utils.camera_params_from_matrix(self.the_camera['newcameramtx'])
+        self.camera_params = camera_utils.camera_params_from_matrix(self.the_camera["newcameramtx"])
         self.tag_size = 1.0
-        self.tag_family = 'tag36h11'
+        self.tag_family = "tag36h11"
 
     def grab_image(self) -> None:
         """
@@ -56,8 +62,8 @@ class RPLTagEngine():
         ret, self.img = self.vid.read()
         if not ret:
             raise RuntimeError("Failed to capture image from camera.")
-        
-        self.datestamp = datetime.now().strftime('%Y%b%d_%H%M%S')
+
+        self.datestamp = datetime.now().strftime("%Y%b%d_%H%M%S")
 
     def analyze_image(self, img: Optional[cv2.Mat] = None) -> None:
         """
@@ -69,58 +75,50 @@ class RPLTagEngine():
         if img is None:
             img = self.img
 
-        self.img_fname = 'temp.jpg'
+        self.img_fname = "temp.jpg"
         cv2.imwrite(self.img_fname, img)
 
         # Detect individual tags
         self.und_fname = "undistorted.jpg"
         self.ovl_fname = "annotated.jpg"
 
-        self.these_tag_IDs, self.these_corners, self.ippe_results = \
+        self.these_tag_IDs, self.these_corners, self.ippe_results = (
             measurement_utils.wrapped_up_detection_pipeline_function(
                 img,
                 self.the_camera,
                 tag_size=self.tag_size,
                 tag_family=self.tag_family,
                 undistorted_fname=self.und_fname,
-                overlay_fname=self.ovl_fname
+                overlay_fname=self.ovl_fname,
             )
+        )
 
         if self.verbose:
-            print(f'these_tag_IDs: {len(self.these_tag_IDs)}')
-            print(f'these_corners: {len(self.these_corners)}')
-            print(f'ippe_results: {len(self.ippe_results)}')
+            print(f"these_tag_IDs: {len(self.these_tag_IDs)}")
+            print(f"these_corners: {len(self.these_corners)}")
+            print(f"ippe_results: {len(self.ippe_results)}")
 
         # Sort into proximate groups
         self.tag_groups = measurement_utils.wrapped_up_multitag_finder(self.these_corners)
-        print(f'tag_groups: {len(self.tag_groups)}')
+        print(f"tag_groups: {len(self.tag_groups)}")
 
         # Link detections to registered multitags
         self.legal_multitags = measurement_utils.find_multitag_candidates(
-            self.tag_groups,
-            self.these_tag_IDs,
-            self.the_db,
-            verbose=False
+            self.tag_groups, self.these_tag_IDs, self.the_db, verbose=False
         )
         if self.verbose:
-            print(f'legal_multitags: {len(self.legal_multitags)}')
+            print(f"legal_multitags: {len(self.legal_multitags)}")
 
         # Estimate poses of detected multitags
         self.mt_poses = measurement_utils.detected_multitag_poses(
-            self.legal_multitags,
-            self.camera_params,
-            self.the_db,
-            self.these_corners,
-            self.ippe_results,
-            self.tag_size
+            self.legal_multitags, self.camera_params, self.the_db, self.these_corners, self.ippe_results, self.tag_size
         )
         if self.verbose:
-            print(f'mt_poses: {len(self.mt_poses)}')
+            print(f"mt_poses: {len(self.mt_poses)}")
 
         # Package mt_poses as a dictionary
         self.detections = {
-            self.the_db.multitags.entries[p[0]].name: [p[3][0].tolist(), p[3][1].tolist()]
-            for p in self.mt_poses
+            self.the_db.multitags.entries[p[0]].name: [p[3][0].tolist(), p[3][1].tolist()] for p in self.mt_poses
         }
 
     def print_detections(self) -> None:
@@ -128,10 +126,9 @@ class RPLTagEngine():
         Print the detected multitags and their poses.
         """
         for multitag_name, (rvec, tvec) in self.detections.items():
-            rstr = '[ ' + ' '.join([f'{x:6.3f}' for x in rvec]) + ' ]'
-            tstr = '[ ' + ' '.join([f'{x:6.2f}' for x in tvec]) + ' ] inches'
-            print(f'{multitag_name:20} {rstr} {tstr}')
-
+            rstr = "[ " + " ".join([f"{x:6.3f}" for x in rvec]) + " ]"
+            tstr = "[ " + " ".join([f"{x:6.2f}" for x in tvec]) + " ] inches"
+            print(f"{multitag_name:20} {rstr} {tstr}")
 
     def cleanup(self) -> None:
         """
@@ -139,28 +136,29 @@ class RPLTagEngine():
         """
         self.vid.release()
         cv2.destroyAllWindows()
-    
+
     def on_demand_script(self) -> str:
         """
         Run the RPLTagEngine and return serialized detection results as a JSON string.
         """
-        
+        self.status = "BUSY"
         self.grab_image()
         self.analyze_image()
-        
+
         serialized_detections = json.dumps(self.detections)
         self.cleanup()
-
+        self.status = "IDLE"
         return serialized_detections
+
 
 def take_it_for_a_spin() -> None:
     """
     Run a test of the RPLTagEngine with command line arguments.
     """
     parser = argparse.ArgumentParser(description="Run RPLTagEngine with the provided database and camera files.")
-    parser.add_argument('--database', default='RPLtag.db', help='Database filename')
-    parser.add_argument('--camera', required=True, help='Camera calibration filename or directory')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Increase output verbosity')
+    parser.add_argument("--database", default="RPLtag.db", help="Database filename")
+    parser.add_argument("--camera", required=True, help="Camera calibration filename or directory")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity")
     args = parser.parse_args()
 
     rpltag_reader = RPLTagEngine(args.database, args.camera, args.verbose)
@@ -170,18 +168,10 @@ def take_it_for_a_spin() -> None:
     rpltag_reader.print_detections()
     rpltag_reader.cleanup()
 
-    
 
 if __name__ == "__main__":
     # uncomment this line for quick one pass command line invocation
-    #take_it_for_a_spin()
+    # take_it_for_a_spin()
 
     # uncomment this line for use as use in FastAPI execute script
-    stuff = on_demand_script()
-    print(type(stuff))
-    print(stuff)
-
-
-
-
-
+    pass

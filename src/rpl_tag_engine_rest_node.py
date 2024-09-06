@@ -1,10 +1,11 @@
-
-from rpl_tag_engine_driver.rpl_tag_engine_driver import RPLTagEngine
+"""
+REST module for interacting with RPL Tag Camera Engine.
+"""
 
 from pathlib import Path
-from typing import List, Optional
 
 from fastapi.datastructures import State
+from rpl_tag_engine_driver.rpl_tag_engine_driver import RPLTagEngine
 from wei.modules.rest_module import RESTModule
 from wei.types.module_types import ModuleState, ModuleStatus
 from wei.types.step_types import ActionRequest, StepResponse
@@ -44,6 +45,7 @@ rest_module.arg_parser.add_argument(
     help="Increase output verbosity",
 )
 
+
 @rest_module.startup()
 def camera_startup(state: State):
     """Camera startup handler."""
@@ -52,17 +54,21 @@ def camera_startup(state: State):
     print("MIR Base online")
 
 
-@rest_module.state_handler()
+@rest_module.state_handler()  # ** TBD, Need to check in person.
 def state(state: State):
     """Returns the current state of the camera module"""
     if state.status not in [
-        ModuleStatus.BUSY,
         ModuleStatus.ERROR,
-        ModuleStatus.INIT,
         None,
     ]:
+        stat = state.camera.status
+        if stat == "BUSY":
+            state.status = ModuleStatus.BUSY
+        elif stat == "IDLE":
+            state.status = ModuleStatus.IDLE
         state.status = ModuleStatus.IDLE
     return ModuleState(status=state.status, error="")
+
 
 @rest_module.action(
     name="run_camera",
@@ -75,6 +81,7 @@ def run_camera(
     """Run the RPLTagEngine and return serialized detection"""
     state.camera.run_camera()
     return StepResponse.step_succeeded()
+
 
 if __name__ == "__main__":
     rest_module.start()

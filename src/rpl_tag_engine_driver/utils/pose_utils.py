@@ -1,5 +1,27 @@
-import numpy as np
+"""
+pose_utils.py
+
+Utilities for working with 3D pose and plane geometry, including:
+- Conversion between rotation vectors and 4x4 pose matrices.
+- Calculation of plane normals and distances from points to planes.
+- Statistics for triangles formed by points in 3D space.
+- Extraction of coordinate axes from pose and rotation vectors.
+
+Functions:
+- rvec_tvec_from_pose: Extract rotation and translation vectors from a 4x4 pose matrix.
+- pose_from_rvec_tvec: Construct a 4x4 pose matrix from rotation and translation vectors.
+- plane_norm: Compute the normal vector of a plane defined by three points.
+- point_to_plane_norm: Compute the signed distance from a point to a plane.
+- point_to_plane: Compute the signed distance from a point to a plane defined by three points.
+- points_plane_stats: Compute and print statistics for all triangles formed by points.
+- xyz_axes_from_pose: Extract the x, y, and z axes from a 4x4 pose matrix.
+- xyz_axes_from_rvec: Extract the x, y, and z axes from a rotation vector.
+- point_to_plane_rvec: Compute the signed distance from a point to a plane defined by a translation vector and a rotation vector.
+"""
+
 import cv2
+import numpy as np
+
 
 def rvec_tvec_from_pose(pose):
     """
@@ -15,6 +37,7 @@ def rvec_tvec_from_pose(pose):
     Rvec = Rvec.T[0]
     Tvec = pose[:3, 3]
     return Rvec, Tvec
+
 
 def pose_from_rvec_tvec(rvec, tvec):
     """
@@ -33,6 +56,7 @@ def pose_from_rvec_tvec(rvec, tvec):
     Pose[3, 3] = 1  # Ensure the matrix is homogeneous
     return Pose
 
+
 def plane_norm(p0, p1, p2):
     """
     Compute the normal vector of a plane defined by three points.
@@ -45,6 +69,7 @@ def plane_norm(p0, p1, p2):
     """
     n = np.cross(p1 - np.array(p0), p2 - np.array(p0))
     return n / np.linalg.norm(n)
+
 
 def point_to_plane_norm(p0, n, p):
     """
@@ -61,6 +86,7 @@ def point_to_plane_norm(p0, n, p):
     dist = np.dot(p - np.array(p0), n)
     return dist
 
+
 def point_to_plane(p0, p1, p2, p):
     """
     Compute the signed distance from a point to a plane defined by three points.
@@ -75,6 +101,7 @@ def point_to_plane(p0, p1, p2, p):
     n = plane_norm(p0, p1, p2)
     dist = point_to_plane_norm(p0, n, p)
     return dist
+
 
 def points_plane_stats(pts):
     """
@@ -103,14 +130,21 @@ def points_plane_stats(pts):
                     n0 = n
                     first_time = False
                 alignment = np.sign(np.dot(n, n0))
-                dotstr = f'{np.dot(n, n0):6.2f}'
+                dotstr = f"{np.dot(n, n0):6.2f}"
                 n = n * alignment
                 z = np.array([np.dot(p - np.array(p0), n) for p in pts])
                 zrms = np.linalg.norm(z) / 3
-                zstr = '[' + ''.join([f'{100*v:6.2f}' for v in z]) + ']'
-                nstr = '[' + ''.join([f'{v:6.2f}' for v in n]) + ']'
-                print(f'{i0:2} {i1:2} {i2:2} {alignment:3.0f} {100*area:6.2f} {l0:6.2f} {l1:6.2f} {l2:6.2f}', nstr, dotstr, zstr, f'{100*zrms:6.2f}')
+                zstr = "[" + "".join([f"{100*v:6.2f}" for v in z]) + "]"
+                nstr = "[" + "".join([f"{v:6.2f}" for v in n]) + "]"
+                print(
+                    f"{i0:2} {i1:2} {i2:2} {alignment:3.0f} {100*area:6.2f} {l0:6.2f} {l1:6.2f} {l2:6.2f}",
+                    nstr,
+                    dotstr,
+                    zstr,
+                    f"{100*zrms:6.2f}",
+                )
     return
+
 
 def xyz_axes_from_pose(pose):
     """
@@ -122,7 +156,8 @@ def xyz_axes_from_pose(pose):
     Returns:
         numpy.ndarray: Array of x, y, and z axes.
     """
-    return pose[:3,:3].T
+    return pose[:3, :3].T
+
 
 def xyz_axes_from_rvec(rvec):
     """
@@ -133,9 +168,10 @@ def xyz_axes_from_rvec(rvec):
 
     Returns:
         numpy.ndarray: Array of x, y, and z axes.
-    """   
-    pose,_ = cv2.Rodrigues(rvec)
+    """
+    pose, _ = cv2.Rodrigues(rvec)
     return pose.T
+
 
 def point_to_plane_rvec(tvec, rvec, p):
     """
@@ -149,7 +185,5 @@ def point_to_plane_rvec(tvec, rvec, p):
     Returns:
         float: Signed distance from the point to the plane.
     """
-    n = xyz_axes_from_rvec(rvec)[2]        
-    return point_to_plane_norm(tvec,n,p)
-
-
+    n = xyz_axes_from_rvec(rvec)[2]
+    return point_to_plane_norm(tvec, n, p)
