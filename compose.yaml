@@ -1,7 +1,7 @@
 name: rpl_tag_engine_module
 services:
-  mir_module:
-    container_name: rpl_tag_engine_module_module
+  rpl_tag_engine_module:
+    container_name: rpl_tag_engine_module
     image: ${IMAGE}
     build:
       context: .
