@@ -10,10 +10,10 @@ config:
 #List of all components accessible in this workcell
 modules:
 
-  - name: mir_module
-    model: MiR 250
+  - name: rpl_tag_engine_module
+    model: RPLtagCamera
     interface: wei_rest_node
     config:
-      rest_node_address: "http://mir_module:3043"
+      rest_node_address: "http://mir_module:3097"
     workcell_coordinates: [0, 0, 0, 0, 0, 0]
 locations: {}

@@ -1,15 +1,14 @@
-name: Test mir_module Module
+name: Test rpl_tag_engine_module Module
 metadata:
-  author: Doga Ozgulbas
+  author: Aileen Cleary
   info: Tests the functionality of the mir  Module
   version: 0.1
 
 modules:
-  - name: mir_module
+  - name: rpl_tag_engine_module
 
 flowdef:
-  - name: Transfer
-    module: mir_module
-    action: action
-    args:
-      action_id: 'action1'
+  - name: Run Camera
+    module: rpl_tag_engine_module
+    action: run_camera
+

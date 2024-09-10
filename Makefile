@@ -17,5 +17,5 @@ checks: # Runs all the pre-commit checks
 
 test: init .env paths # Runs all the tests
 	@docker compose -f wei.compose.yaml --env-file .env up --build -d
-	@docker compose -f wei.compose.yaml --env-file .env exec mir_module pytest -p no:cacheprovider mir_module
+	@docker compose -f wei.compose.yaml --env-file .env exec rpl_tag_engine_module pytest -p no:cacheprovider rpl_tag_engine_module
 	@docker compose -f wei.compose.yaml --env-file .env down
