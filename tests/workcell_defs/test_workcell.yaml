@@ -14,6 +14,6 @@ modules:
     model: RPLtagCamera
     interface: wei_rest_node
     config:
-      rest_node_address: "http://mir_module:3097"
+      rest_node_address: "http://rpl_tag_engine_module:3097"
     workcell_coordinates: [0, 0, 0, 0, 0, 0]
 locations: {}
