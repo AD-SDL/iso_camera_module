@@ -17,24 +17,24 @@ rest_module = RESTModule(
     description="A node to control RPL's camera tag engine.",
 )
 
-rest_module.arg_parser.add_argument(
-    "--host",
-    type=str,
-    default="146.137.240.84",
-    help="IP address to connect to camera.",
-)
+# rest_module.arg_parser.add_argument(
+#     "--host",
+#     type=str,
+#     default="146.137.240.84",
+#     help="IP address to connect to camera.",
+# )
 
 rest_module.arg_parser.add_argument(
     "--database",
     type=str,
-    default="RPLtag.db",
+    default="/home/app/rpl_tag_engine_module/RPLtag.db",
     help="Database filename",
 )
 
 rest_module.arg_parser.add_argument(
     "--camera",
     type=str,
-    default="CALIB_Logi_RPL_20240508/",
+    default="/home/app/rpl_tag_engine_module/CALIB_Logi_RPL_20240508",
     help="Camera calibration filename or directory",
 )
 
@@ -49,7 +49,6 @@ rest_module.arg_parser.add_argument(
 @rest_module.startup()
 def camera_startup(state: State):
     """Camera startup handler."""
-    state.camera = None
     state.camera = RPLTagEngine(database=state.database, camera=state.camera, verbose=state.verbose)
     print("MIR Base online")
 

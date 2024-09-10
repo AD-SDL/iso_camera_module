@@ -9,10 +9,14 @@ services:
       tags:
         - ${IMAGE}:latest
         - ${IMAGE}:dev
-    command: python -m rpl_tag_engine_rest_node --port 3097  --host ${HOST} --database ${DATABASE} --camera ${CAMERA} --verbose ${VERBOSE}
+    command: python -m rpl_tag_engine_rest_node --port 3097 --database ${DATABASE} --camera ${CAMERA} --verbose ${VERBOSE}
+    privileged: true
     env_file: .env
     volumes:
       - ./src:/home/app/rpl_tag_engine_module/src
       - ./tests:/home/app/rpl_tag_engine_module/tests
+      - ./RPLtag.db:/home/app/rpl_tag_engine_module/RPLtag.db
+      - ./CALIB_Logi_RPL_20240508:/home/app/rpl_tag_engine_module/CALIB_Logi_RPL_20240508
+      - /dev/video0:/dev/video0
     ports:
       - 3097:3097

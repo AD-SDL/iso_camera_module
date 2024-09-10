@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Optional
 
 import cv2
-from utils import camera_utils, measurement_utils, object_utils
+from rpl_tag_engine_driver.utils import camera_utils, measurement_utils, object_utils
 
 
 class RPLTagEngine:
@@ -39,7 +39,6 @@ class RPLTagEngine:
         self.camera_fname = camera
         self.verbose = verbose
         self.status = "INIT"
-
         self.vid = cv2.VideoCapture(0)
         self.vid.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
         self.vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
@@ -49,7 +48,6 @@ class RPLTagEngine:
 
         self.the_db = object_utils.RPLTagDatabase()
         self.the_db.load(self.db_filename)
-
         self.the_camera = camera_utils.load_camera(self.camera_fname)
         self.camera_params = camera_utils.camera_params_from_matrix(self.the_camera["newcameramtx"])
         self.tag_size = 1.0

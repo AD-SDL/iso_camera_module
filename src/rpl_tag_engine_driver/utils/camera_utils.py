@@ -70,6 +70,7 @@ def load_camera(calibdir, filename="camera.npz", ret="all"):
     Returns:
         dict or tuple: Loaded camera parameters depending on `ret` value.
     """
+    print(calibdir)
     filepath = os.path.join(calibdir, filename)
     if not os.path.isfile(filepath):
         print(f"Warning: File {filename} does not exist.")

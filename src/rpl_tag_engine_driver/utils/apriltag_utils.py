@@ -22,7 +22,7 @@ This module facilitates the detection, visualization, and analysis of AprilTags 
 import os
 from argparse import ArgumentParser
 
-import apriltag
+from rpl_tag_engine_driver.utils import apriltag
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np

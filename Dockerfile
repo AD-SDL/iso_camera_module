@@ -20,4 +20,5 @@ RUN --mount=type=cache,target=/root/.cache \
 
 CMD ["python", "rpl_tag_engine_module/src/rpl_tag_engine_rest_node.py"]
 
+RUN usermod -a -G video app
 #########################################
